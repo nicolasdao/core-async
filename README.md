@@ -6,8 +6,14 @@ __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It
 > * [Install](#install) 
 > * [How To Use It](#how-to-use-it) 
 >   - [Basic](#basic)
->   - [Config](#config)
-> * [FAQ](#faq)
+>   - [Buffered vs Unbuffered Channels](#buffered-vs-unbuffered-channels)
+>   - [API](#api)
+>      - [put - take - sput - stake](#put---take---sput---stake)
+>      - [alts](#alts)
+>      - [merge](#merge)
+>      - [subscribe](#subscribe)
+> * [Examples](#examples)
+>   - [Monitoring Stock Prices](#monitoring-stock-prices)
 > * [About Neap](#this-is-what-we-re-up-to)
 > * [License](#license)
 
@@ -89,10 +95,235 @@ co(function *() {
 // 	    there!
 ```
 
+## Buffered vs Unbuffered Channels
+
+```js
+const { Channel } = require('core-async')
+
+const chan = new Channel(2)
+
+...
+```
+
+More detailed doc coming soon...
+
+## Dropping and Sliding Channels
+
+```js
+const { Channel } = require('core-async')
+
+const droppingChan = new Channel(2, 'dropping')
+const slidingChan = new Channel(2, 'sliding')
+
+...
+```
+
+More detailed doc coming soon...
+
+# API
+## put - take - sput - stake
+
+```js
+const { Channel } = require('core-async')
+
+const chan = new Channel()
+
+co(function *() {
+	yield chan.put(1)
+	console.log('PUT 1 DONE')
+
+	const sputSucceeded = chan.sput(2)
+	console.log(`SPUT 2 SUCCESSED? ${sputSucceeded}`)
+})
+
+co(function *() {
+	const val = yield chan.take()
+	console.log(`TAKE VALUE: ${val}`)
+
+	const stakeSucceeded = chan.stake()
+	console.log(`STAKE SUCCESSED? ${stakeSucceeded}`)
+})
+```
+
+More detailed doc coming soon...
+
+## alts
 
 
-# FAQ
-Blablabla
+```js
+const { Channel, alts } = require('core-async')
+
+const chan1 = new Channel()
+const chan2 = new Channel()
+
+co(function *() {
+	const [v,chan] = yield alts([chan1, chan2])
+
+	if (chan == chan1)
+		console.log(`CHAN 1 WON WITH VALUE: ${v}`)
+	else
+		console.log(`CHAN 2 WON WITH VALUE: ${v}`)
+})
+
+chan1.put('hello')
+chan2.put('world')
+```
+
+More detailed doc coming soon...
+
+## merge
+
+> WARNING: This API is not part of the original Clojure core.async library. It was added because of its frequent usage and many common scenarios.
+
+```js
+const { Channel, merge } = require('core-async')
+
+const chan1 = new Channel()
+const chan2 = new Channel()
+
+co(function *() {
+	const mergedChan = yield merge([chan1, chan2])
+
+	while(true) {
+		const v = yield mergedChan.take()
+		console.log(v)
+	}
+})
+
+chan1.put(1)
+chan1.put(2)
+chan1.put(3)
+chan2.put('Hello')
+chan2.put('world!')
+chan2.put('This rocks!')
+```
+
+More detailed doc coming soon...
+
+## subscribe
+
+> WARNING: This API is not part of the original Clojure core.async library. It was added because of its frequent usage and many common scenarios.
+
+```js
+const { Channel, subscribe } = require('core-async')
+
+const source = new Channel()
+
+const numberSusbcriber = new Channel()
+const wordSusbcriber = new Channel()
+
+subscribe(source,[{
+	chan: numberSusbcriber,
+	rule: data => typeof(data) == 'number'
+}, {
+	chan: wordSusbcriber,
+	rule: data => typeof(data) == 'string'
+}])
+
+co(function *(){
+	while(true) {
+		const data = yield numberSusbcriber.take()
+		console.log(`NUMBER RECEIVED: ${data}`)
+	}
+})
+
+co(function *(){
+	while(true) {
+		const data = yield wordSusbcriber.take()
+		console.log(`WORD RECEIVED: ${data}`)
+	}
+})
+
+const a = [1,'one',2,'two',3,'three']
+a.map(data => source.put(data))
+```
+
+More detailed doc coming soon...
+
+# Examples
+## Monitoring Stock Prices
+
+The following snippet monitors the FAANG and check which one moves by more than 5% (up or down) over a certain period of time. If it does,
+an alert is sent.
+
+```js
+const co = require('co')
+const { Channel } = require('core-async')
+
+const STOCKS = ['FB','AAPL', 'AMZN', 'NFLX', 'GOOGL'] // FAANG tickers
+const CHECK_INTERVAL = 100 // Check every 100ms. In reality you'd change that to 1 minute.
+const SLIDING_WINDOW = 60  // 60 minutes
+const PRICE_CHANGE_THRESHOLD = 0.05 // 1 percent
+
+// GENERIC FUNCTIONS NEEDED FOR THIS DEMO. 
+const delay = t => new Promise(resolve => setTimeout(resolve, t))
+const getRandomNumber = ({ start, end }) => {
+	const endDoesNotExist = end === undefined
+	if (start == undefined && endDoesNotExist)
+		return Math.random()
+	
+	const _start = start >= 0 ? Math.round(start) : 0
+	const _end = end >= 0 ? Math.round(end) : 0
+	const size = endDoesNotExist ? _start : (_end - _start)
+	const offset = endDoesNotExist ? 0 : _start
+	return offset + Math.floor(Math.random() * size)
+}
+
+const getStockPrice = ticker => Promise.resolve({ ticker, price:getRandomNumber({ start:100, end: 110 }) })
+
+const getSignificantPriceChange = (priceHistory, percThreshold) => {
+	const snapshotT0 = priceHistory[0]
+	const snapshotT1 = priceHistory.slice(-1)[0]
+	const percChange = (snapshotT1.price-snapshotT0.price)/snapshotT0.price
+	if (Math.abs(percChange) >= percThreshold) 
+		return { percChange: (percChange*100).toFixed(1), t0: snapshotT0, t1: snapshotT1 }
+	else
+		return null
+}
+
+const sendPriceAlert = ({ ticker, priceChange }) => Promise.resolve({ ticker, priceChange }).then(() => { 
+	console.log(`Price of ${ticker} ${priceChange.percChange < 0 ? 'dropped' : 'increased' } by ${priceChange.percChange}% in the last hour.`) 
+})
+
+
+
+
+// THE INTERESTING PIECE OF CODE THAT USES CORE-ASYNC
+const STOCK_DATA = STOCKS.map(ticker => ({ ticker, chan: new Channel() }))
+
+const main = () => 
+	STOCK_DATA.forEach(({ ticker, chan }) => 
+		// 1. Create a lightweight thread for each stock which continuously check prices.
+		co(function *() {
+			while (true) {
+				const { price } = yield getStockPrice(ticker)
+				chan.put({ price, date: Date.now() })
+				yield delay(CHECK_INTERVAL)
+			}
+		})
+
+		// 2. Create a lightweight thread for each stock that decide if an alert must be sent each time a new price is received.
+		co(function *() {
+			let priceHist = []
+			while (true) {
+				const priceSnapshot = yield chan.take()
+				priceHist.push(priceSnapshot)
+				if (priceHist.length == SLIDING_WINDOW) {
+					const priceChange = getSignificantPriceChange(priceHist, PRICE_CHANGE_THRESHOLD)
+					if (priceChange) {
+						priceHist = []
+						sendPriceAlert({ ticker, priceChange })
+					} else
+						priceHist.splice(0,1)
+				}
+				yield delay(CHECK_INTERVAL)
+			}
+		})
+	)
+
+main()
+
+```
 
 # This Is What We re Up To
 We are Neap, an Australian Technology consultancy powering the startup ecosystem in Sydney. We simply love building Tech and also meeting new people, so don't hesitate to connect with us at [https://neap.co](https://neap.co).
