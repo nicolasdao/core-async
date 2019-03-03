@@ -1,0 +1,32 @@
+{
+  "name": "core-async",
+  "version": "0.0.0",
+  "description": "JS implementation of the Clojure core.async library. Designed to be used with the npm package 'co'.",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicolasdao/core-async.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nicolasdao/core-async/issues"
+  },
+  "homepage": "https://github.com/nicolasdao/core-async#readme",
+  "scripts": {
+    "lint": "eslint index.js src/ test/ --fix",
+    "push": "git push --follow-tags origin master && npm publish",
+    "rls": "standard-version --release-as",
+    "test": "mocha",
+    "v": "node -e \"console.log(require('./package.json').version)\""
+  },
+  "author": "Nicolas Dao",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "eslint": "^4.19.1",
+    "mocha": "^5.2.0",
+    "standard-version": "^4.4.0"
+  },
+  "dependencies": {
+    "co": "^4.6.0"
+  }
+}
