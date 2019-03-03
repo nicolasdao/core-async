@@ -17,6 +17,80 @@ __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It
 npm i core-async
 ```
 
+# How To Use It
+## Basic
+
+The following demoes 2 lightweight threads thanks to the __*co*__ library. The communication between those 2 threads is managed by the __*core-async*__ Channel called `chatBetween_t1_t2`. The 2 lightweight threads can be seen as 2 users chatting with each other.
+
+```js
+const co = require('co')
+const { Channel } = require('core-async')
+
+const chatBetween_t1_t2 = new Channel()
+
+co(function *() {
+	console.log('STARING LIGHTWEIGHT THREAD T1')
+	// Say 'hello' to thread 2 and waiting for answer
+	yield chatBetween_t1_t2.put('Hello')
+	
+	// Waiting for answer from thread 2
+	const msg1 = yield chatBetween_t1_t2.take()
+	console.log(`				   T2 says: ${msg1}`)
+	
+	// Responding to thread 2
+	yield chatBetween_t1_t2.put(`Going to the beach in 
+	 an hour. Want to come?`)
+	
+	// Waiting for answer from thread 2
+	const msg2 = yield chatBetween_t1_t2.take()
+	console.log(`				   T2 says: ${msg2}`)
+	
+	// Responding to thread 2 
+	yield chatBetween_t1_t2.put(`No worries mate! Bring 
+	 some frothies. See you 
+	 there!`)
+})
+
+co(function *() {
+	console.log('STARING LIGHTWEIGHT THREAD T2')
+	
+	// Waiting for the first message from T1
+	const msg1 = yield chatBetween_t1_t2.take()
+	console.log(`T1 says: ${msg1}`)
+	
+	// Replying to T1 
+	yield chatBetween_t1_t2.put(`Hi T1. What's up?`)
+	
+	// Waiting for answer from thread 1
+	const msg2 = yield chatBetween_t1_t2.take()
+	console.log(`T1 says: ${msg2}`)
+	
+	// Replying to T1 
+	yield chatBetween_t1_t2.put(`Sounds great. I'll meet 
+					    you there. Thanks for the invite.`)
+	
+	// Waiting for answer from thread 1
+	const msg3 = yield chatBetween_t1_t2.take()
+	console.log(`T1 says: ${msg3}`)
+})
+
+// OUTPUT:
+// =======
+// STARING LIGHTWEIGHT THREAD T1
+// STARING LIGHTWEIGHT THREAD T2
+// T1 says: Hello
+// 					T2 says: Hi T1. What's up?
+// T1 says: Going to the beach in
+// 	    an hour. Want to come?
+// 			   		T2 says: Sounds great. I'll meet
+// 						 you there. Thanks for the invite.
+// T1 says: No worries mate! Bring
+// 	    some frothies. See you
+// 	    there!
+```
+
+
+
 # FAQ
 Blablabla
 
