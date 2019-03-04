@@ -238,9 +238,9 @@ describe('Channel', () => {
 			done()
 		}).catch(done)
 	})
-	it('05 - Should support buffer', () => {
-		const chn = new Channel(1)
-		return new Promise(resolve => {
+	it('05 - Should support buffered Channels', done => {
+		new Promise(resolve => {
+			const chn = new Channel(1)
 			const steps = []
 			co(function *() {
 				steps.push({ id:1, created: Date.now() })
@@ -254,29 +254,61 @@ describe('Channel', () => {
 				steps.push({ id:6, created: Date.now() })
 			})
 			co(function *(){
-				yield delay(20)
+				yield delay(10)
 				steps.push({ id:5, created: Date.now() })
 				const d1 = yield chn.take()
 				steps.push({ id:7, created: Date.now(), value:d1 })
 				const d2 = yield chn.take()
 				steps.push({ id:8, created: Date.now(), value:d2 })
-				resolve(steps)
-			})
-		}).then(steps => {
-			assert.equal(steps.length, 8, '01')
-			assert.equal(steps.filter(({id}) => id > 0).length, 8, '02')
-			assert.equal(steps[0].id, 1, '03')
-			assert.equal(steps[1].id, 2, '04')
-			assert.equal(steps[2].id, 3, '05')
-			assert.equal(steps[3].id, 4, '06')
-			assert.equal(steps[4].id, 5, '07')
-			assert.equal(steps[5].id, 6, '08')
-			assert.equal(steps[6].id, 7, '09')
-			assert.equal(steps[7].id, 8, '10')
-			assert.strictEqual(steps[2].value, 'hello', '11')
-			assert.strictEqual(steps[6].value, 'world!', '12')
-			assert.strictEqual(steps[7].value, 'Are you good?', '13')
-		})
+					
+				assert.equal(steps.length, 8, '01')
+				assert.equal(steps.filter(({id}) => id > 0).length, 8, '02')
+				assert.equal(steps[0].id, 1, '03')
+				assert.equal(steps[1].id, 2, '04')
+				assert.equal(steps[2].id, 3, '05')
+				assert.equal(steps[3].id, 4, '06')
+				assert.equal(steps[4].id, 5, '07')
+				assert.equal(steps[5].id, 6, '08')
+				assert.equal(steps[6].id, 7, '09')
+				assert.equal(steps[7].id, 8, '10')
+				assert.strictEqual(steps[2].value, 'hello', '11')
+				assert.strictEqual(steps[6].value, 'world!', '12')
+				assert.strictEqual(steps[7].value, 'Are you good?', '13')
+
+				resolve()
+			}).catch(done)
+		}).then(() => {
+			const chan = new Channel(2)
+			const steps = []
+			co(function *(){
+				let putCounter = 0
+				while(true) {
+					yield chan.put(++putCounter)
+					steps.push({ id:putCounter, type:'PUT' })
+				}
+			}).catch(done)
+			co(function *(){
+				yield delay(10)
+				steps.push({ id:1, type:'TAKING' })
+				const data = yield chan.take()
+				steps.push({ id:2, type:'TAKE', data })
+		
+				assert.equal(steps.length, 5, '01')
+				assert.equal(steps[0].id, 1, '02')
+				assert.equal(steps[0].type, 'PUT', '03')
+				assert.equal(steps[1].id, 2, '04')
+				assert.equal(steps[1].type, 'PUT', '05')
+				assert.equal(steps[2].id, 1, '06')
+				assert.equal(steps[2].type, 'TAKING', '07')
+				assert.equal(steps[3].id, 3, '08')
+				assert.equal(steps[3].type, 'PUT', '09')
+				assert.equal(steps[4].id, 2, '10')
+				assert.equal(steps[4].type, 'TAKE', '11')
+				assert.equal(steps[4].data, 1, '12')
+
+				done()
+			}).catch(done)
+		}).catch(done)
 	})
 	it('06 - Should let a \'take\' release the next blocked \'put\' if the current \'put\' was immediately released', (done) => {
 		const chan = new Channel(1)

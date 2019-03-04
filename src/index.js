@@ -87,7 +87,7 @@ const Channel = function(buffer,type) {
 		}
 	}
 	const _dispatchNextPutRequest = () => {
-		const { data } = _putRequestQueue.data.find(({ dispatched }) => !dispatched) || {}
+		const { data } = _putRequestQueue.data.find(({ data }) => data && !data.dispatched) || {}
 		if (data && data.execWhenFreeBuffer) {
 			data.execWhenFreeBuffer()
 			data.dispatched = true
