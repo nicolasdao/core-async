@@ -260,7 +260,7 @@ const seed = (size=0) => Array.apply(null, Array(size))
 const lotsOfConcurrentTasks = seed(1000).map((_,i) => (() => delay(Math.round(Math.random()*10000)).then(() => `TASK ${i} DONE`)))
 
 co(function *(){
-	// This will execute maximum of 20 tasks at a time
+	// This executes maximum 20 tasks at a time
 	const results = yield throttle(lotsOfConcurrentTasks, 20)
 	console.log(results)
 	// => ['TASK 0 DONE', 'TASK 1 DONE', 'TASK 2 DONE', ..., 'TASK 999 DONE']
