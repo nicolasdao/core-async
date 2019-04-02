@@ -581,111 +581,48 @@ const subscribe = (chan,subscribers) => {
 	})
 }
 
+/**
+ * Throttles a series on tasks
+ * 
+ * @param {[Function]} tasks 	Array of functions representing a tasks
+ * @param {Number} 	   buffer 	Buffer size, i.e., the maximum number of concurrent tasks
+ * @yield {[Object]}   output 	The results of each tasks.
+ */
+const throttle = (tasks, buffer) => co(function *(){
+	if (!buffer)
+		throw new Error('Missing required argument \'buffer\'')
+	if (typeof(buffer) != 'number')
+		throw new Error(`Wrong argument exception 'buffer'. 'buffer' must be a number (current: ${typeof(buffer)})`)
+
+	buffer = buffer > 0 ? buffer : 1
+
+	tasks = tasks || []
+	const chan = new Channel(buffer)
+	const l = tasks.length
+
+	const results = []
+	for(let i=0;i<l;i++) {
+		yield chan.put(i)
+		results.push(Promise.resolve(null)
+			.then(tasks[i])
+			.catch(error => ({ error }))
+			.then(result => {
+				chan.take()
+				return result
+			}))
+	}
+	return yield results
+})
+
 module.exports = {
 	Channel,
 	PubSub,
 	subscribe,
 	alts,
 	merge,
-	timeout
+	timeout,
+	throttle
 }
-
-// EXAMPLE: Take 2 random streams (one with random numbers and another with random letters), and display a message
-//          each time we've gathered enough letters to form the word defined in NAME and each time we've gathered
-//          enough numbers that add exactly to AGE.
-
-// const getRandomNumber = ({ start, end }) => {
-// 	const endDoesNotExist = end === undefined
-// 	if (start == undefined && endDoesNotExist)
-// 		return Math.random()
-	
-// 	const _start = start >= 0 ? Math.round(start) : 0
-// 	const _end = end >= 0 ? Math.round(end) : 0
-// 	const size = endDoesNotExist ? _start : (_end - _start)
-// 	const offset = endDoesNotExist ? 0 : _start
-// 	return offset + Math.floor(Math.random() * size)
-// }
-
-// const randomNumbersGen = () => {
-// 	const out = new Channel()
-// 	co(function *(){
-// 		while (true) {
-// 			const n = getRandomNumber({ start:1, end: 50 })
-// 			yield delay(100)
-// 			yield out.put(n)
-// 		}
-// 	})
-// 	return out
-// }
-
-
-// const randomLettersGen = () => {
-// 	const out = new Channel()
-// 	const letters = 'abcdefghijklmnopqrstuvwxyz'.split('')
-// 	const s = letters.length
-// 	co(function *(){
-// 		while (true) {
-// 			const n = getRandomNumber({ start:1, end: s }) - 1			
-// 			yield delay(50)
-// 			yield out.put(letters[n])
-// 		}
-// 	})
-// 	return out
-// }
-
-// const NAME = 'nic'
-// const AGE = 37
-// const pubSub = chansToPubSub(
-// 	[randomNumbersGen(),randomLettersGen()],
-// 	[{
-// 		topic: 'nic:name',
-// 		filter: data => typeof(data) == 'string' && NAME.indexOf(data) >= 0
-// 	}, {
-// 		topic: 'nic:age',
-// 		filter: data => typeof(data) == 'number' && data <= AGE
-// 	}]
-// )
-
-// const lettersChan = new Channel()
-// const numbersChan = new Channel()
-// pubSub.sub(['nic:name'], lettersChan)
-// pubSub.sub(['nic:age'], numbersChan)
-
-// co(function *(){
-// 	let last = ''
-// 	let counter = 0
-// 	while(true){
-// 		const data = yield lettersChan.take()
-// 		counter++
-// 		const v = last + data
-// 		if (NAME.indexOf(v) == 0)
-// 			last = v 
-// 		if (NAME == last) {
-// 			console.log(`It took ${counter} random letters to generate '${NAME}'`)
-// 			last = ''
-// 			counter = 0
-// 		}
-// 	}
-// })
-
-// co(function *(){
-// 	let last = 0
-// 	let counter = 0
-// 	while(true){
-// 		const data = yield numbersChan.take()
-// 		counter++
-// 		const v = last + data
-// 		if (AGE >= v)
-// 			last = v 
-// 		if (AGE == last) {
-// 			console.log(`It took ${counter} random numbers to generate '${AGE}'`)
-// 			last = 0
-// 			counter = 0
-// 		}
-// 	}
-// })
-
-
 
 
 

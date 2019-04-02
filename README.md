@@ -8,12 +8,13 @@ __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It
 >   - [Basic](#basic)
 >   - [Buffered vs Unbuffered Channels](#buffered-vs-unbuffered-channels)
 >   - [API](#api)
->      - [put - take - sput - stake](#put---take---sput---stake)
->      - [alts](#alts)
->      - [merge](#merge)
->      - [subscribe](#subscribe)
+>		- [put - take - sput - stake](#put---take---sput---stake)
+>		- [alts](#alts)
+>		- [merge](#merge)
+>		- [subscribe](#subscribe)
+>		- [throttle](#throttle)
 > * [Examples](#examples)
->   - [Monitoring Stock Prices](#monitoring-stock-prices)
+>		- [Monitoring Stock Prices](#monitoring-stock-prices)
 > * [About Neap](#this-is-what-we-re-up-to)
 > * [License](#license)
 
@@ -124,6 +125,7 @@ More detailed doc coming soon...
 ## put - take - sput - stake
 
 ```js
+const co = require('co')
 const { Channel } = require('core-async')
 
 const chan = new Channel()
@@ -151,6 +153,7 @@ More detailed doc coming soon...
 
 
 ```js
+const co = require('co')
 const { Channel, alts } = require('core-async')
 
 const chan1 = new Channel()
@@ -176,6 +179,7 @@ More detailed doc coming soon...
 > WARNING: This API is not part of the original Clojure core.async library. It was added because of its frequent usage and many common scenarios.
 
 ```js
+const co = require('co')
 const { Channel, merge } = require('core-async')
 
 const chan1 = new Channel()
@@ -205,6 +209,7 @@ More detailed doc coming soon...
 > WARNING: This API is not part of the original Clojure core.async library. It was added because of its frequent usage and many common scenarios.
 
 ```js
+const co = require('co')
 const { Channel, subscribe } = require('core-async')
 
 const source = new Channel()
@@ -239,6 +244,33 @@ a.map(data => source.put(data))
 ```
 
 More detailed doc coming soon...
+
+## throttle
+
+> WARNING: This API is not part of the original Clojure core.async library. It was added because of its frequent usage and many common scenarios.
+
+```js
+const co = require('co')
+const { throttle } = require('core-async')
+
+const delay = t => new Promise(resolve => setTimeout(resolve, t))
+const seed = (size=0) => Array.apply(null, Array(size))
+
+// Array of parameterless functions
+const lotsOfConcurrentTasks = seed(1000).map((_,i) => (() => delay(Math.round(Math.random()*10000)).then(() => `TASK ${i} DONE`)))
+
+co(function *(){
+	// This will execute maximum of 20 tasks at a time
+	const results = yield throttle(lotsOfConcurrentTasks, 20)
+	console.log(results)
+	// => ['TASK 0 DONE', 'TASK 1 DONE', 'TASK 2 DONE', ..., 'TASK 999 DONE']
+})
+```
+
+More detailed doc coming soon...
+
+
+
 
 # Examples
 ## Monitoring Stock Prices

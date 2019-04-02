@@ -11,7 +11,7 @@
 
 const { assert } = require('chai')
 const co = require('co')
-const { Channel, PubSub, subscribe, alts, merge, timeout } = require('../src')
+const { Channel, PubSub, subscribe, alts, merge, timeout, throttle } = require('../src')
 const { promise: { delay } } = require('../src/utils')
 
 describe('Channel', () => {
@@ -998,7 +998,35 @@ describe('#timeout', () => {
 	})
 })
 
+describe('#throttle', () => {
+	it('01 - Should throttles concurrent tasks.', done => {
+		
+		const tasks = [
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now()),
+			() => delay(20).then(() => Date.now())
+		]
 
+		throttle(tasks, 3).then(results => {
+			assert.equal(results.length, 9, '01')
+			assert.strictEqual(Math.abs(results[0]-results[1]) < 5, true, '02')
+			assert.strictEqual(Math.abs(results[1]-results[2]) < 5, true, '03')
+			assert.strictEqual(Math.abs(results[2]-results[3]) > 20, true, '04')
+			assert.strictEqual(Math.abs(results[3]-results[4]) < 5, true, '05')
+			assert.strictEqual(Math.abs(results[4]-results[5]) < 5, true, '06')
+			assert.strictEqual(Math.abs(results[5]-results[6]) > 10, true, '07')
+			assert.strictEqual(Math.abs(results[6]-results[7]) < 5, true, '08')
+			assert.strictEqual(Math.abs(results[7]-results[8]) < 5, true, '09')
+			done()
+		}).catch(done)
+	})
+})
 
 
 
