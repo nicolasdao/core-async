@@ -214,10 +214,16 @@ const Channel = function(buffer,mode) {
 				_incrementBuffer()
 				next(true)
 			} else if (mode == DROPPING_MODE) {
-				_pushRequests.pop()
+				/* eslint-disable */
+				let p = _pushRequests.pop()
+				p = null
+				/* eslint-enable */
 				next(null)
 			} else if (mode == SLIDING_MODE) {
-				_pushRequests.splice(0,1)
+				/* eslint-disable */
+				let p = _pushRequests.splice(0,1)
+				p = null
+				/* eslint-enable */
 				next(true)
 			}
 
