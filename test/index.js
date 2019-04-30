@@ -11,7 +11,9 @@
 
 const { assert } = require('chai')
 const co = require('co')
-const { Channel, PubSub, subscribe, alts, merge, timeout, throttle } = require('../src')
+// const { Channel, PubSub, subscribe, alts, merge, timeout, throttle } = require('../src')
+const { Channel, timeout, alts, tools } = require('../src')
+const { PubSub, subscribe, merge, throttle } = tools
 const { promise: { delay } } = require('../src/utils')
 
 describe('Channel', () => {
@@ -84,7 +86,7 @@ describe('Channel', () => {
 			assert.equal(steps[4].id, 5, '08')
 			assert.isNotOk(steps[5].id, '09')
 			assert.isOk(steps[5].error, '10')
-			assert.equal(steps[5].error.message, `'channel.take()' timed out after ${takeTimeout} ms. No data was taken off the channel.`, '11')
+			assert.equal(steps[5].error.message, `'take' timed out after ${takeTimeout} ms. No data was taken off the channel.`, '11')
 			assert.equal(steps[5].error.code, 408, '11B')
 			assert.isOk(steps[1].created - steps[0].created >= 0, '12')
 			assert.isOk(steps[2].created - steps[1].created >= 0, '14')
@@ -127,14 +129,14 @@ describe('Channel', () => {
 			co(function *() {
 				steps.push({ id:5, created: Date.now() })
 				yield delay(delay2).then(() => chn.put('Hooray'))
-				steps.push({ id:11, created: Date.now() })
+				steps.push({ id:13, created: Date.now() })
 			})
 			co(function *() {
 				steps.push({ id:6, created: Date.now() })
 				const message = yield delay(delay2).then(() => chn.take({ timeout:takeTimeout }))
-				steps.push({ id:12, created: Date.now(), message })
+				steps.push({ id:11, created: Date.now(), message })
 				const msg = yield chn.take()
-				steps.push({ id:13, created: Date.now(), message:msg })
+				steps.push({ id:12, created: Date.now(), message:msg })
 				yield chn.put('yo', { timeout:takeTimeout })
 					.then(() => steps.push({ id:14, created: Date.now() }))
 					.catch(err => steps.push({ error:err, created: Date.now() }))
@@ -162,10 +164,10 @@ describe('Channel', () => {
 			assert.isNotOk(steps[8].id, '16')
 			assert.isNotOk(steps[13].id, '17')
 			assert.isOk(steps[8].error, '18')
-			assert.equal(steps[8].error.message, `'channel.take()' timed out after ${takeTimeout} ms. No data was taken off the channel.`, '19')
+			assert.equal(steps[8].error.message, `'take' timed out after ${takeTimeout} ms. No data was taken off the channel.`, '19')
 			assert.equal(steps[8].error.code, 408, '19B')
 			assert.isOk(steps[13].error, '20')
-			assert.equal(steps[13].error.message, `'channel.put()' timed out after ${takeTimeout} ms. No data was added to the channel.`, '21')
+			assert.equal(steps[13].error.message, `'put' timed out after ${takeTimeout} ms. No data was added to the channel.`, '21')
 			assert.equal(steps[13].error.code, 408, '21B')
 			assert.isOk(steps[1].created - steps[0].created >= 0, '22')
 			assert.isOk(steps[2].created - steps[1].created >= 0, '23')
@@ -260,7 +262,7 @@ describe('Channel', () => {
 				steps.push({ id:7, created: Date.now(), value:d1 })
 				const d2 = yield chn.take()
 				steps.push({ id:8, created: Date.now(), value:d2 })
-					
+
 				assert.equal(steps.length, 8, '01')
 				assert.equal(steps.filter(({id}) => id > 0).length, 8, '02')
 				assert.equal(steps[0].id, 1, '03')
@@ -268,11 +270,11 @@ describe('Channel', () => {
 				assert.equal(steps[2].id, 3, '05')
 				assert.equal(steps[3].id, 4, '06')
 				assert.equal(steps[4].id, 5, '07')
-				assert.equal(steps[5].id, 6, '08')
-				assert.equal(steps[6].id, 7, '09')
+				assert.equal(steps[5].id, 7, '08')
+				assert.equal(steps[6].id, 6, '09')
 				assert.equal(steps[7].id, 8, '10')
 				assert.strictEqual(steps[2].value, 'hello', '11')
-				assert.strictEqual(steps[6].value, 'world!', '12')
+				assert.strictEqual(steps[5].value, 'world!', '12')
 				assert.strictEqual(steps[7].value, 'Are you good?', '13')
 
 				resolve()
@@ -283,31 +285,117 @@ describe('Channel', () => {
 			co(function *(){
 				let putCounter = 0
 				while(true) {
-					yield chan.put(++putCounter)
-					steps.push({ id:putCounter, type:'PUT' })
+					++putCounter
+					const id = putCounter+10
+					yield chan.put(id)
+					steps.push({ id, type:'PUT' })
 				}
 			}).catch(done)
+
 			co(function *(){
 				yield delay(10)
 				steps.push({ id:1, type:'TAKING' })
 				const data = yield chan.take()
 				steps.push({ id:2, type:'TAKE', data })
-		
-				assert.equal(steps.length, 5, '01')
-				assert.equal(steps[0].id, 1, '02')
-				assert.equal(steps[0].type, 'PUT', '03')
-				assert.equal(steps[1].id, 2, '04')
-				assert.equal(steps[1].type, 'PUT', '05')
-				assert.equal(steps[2].id, 1, '06')
-				assert.equal(steps[2].type, 'TAKING', '07')
-				assert.equal(steps[3].id, 3, '08')
-				assert.equal(steps[3].type, 'PUT', '09')
-				assert.equal(steps[4].id, 2, '10')
-				assert.equal(steps[4].type, 'TAKE', '11')
-				assert.equal(steps[4].data, 1, '12')
+				yield delay(5)
+				assert.equal(steps.length, 5, '14')
+				assert.equal(steps[0].id, 11, '15')
+				assert.equal(steps[0].type, 'PUT', '16')
+				assert.equal(steps[1].id, 12, '17')
+				assert.equal(steps[1].type, 'PUT', '18')
+				assert.equal(steps[2].id, 1, '19')
+				assert.equal(steps[2].type, 'TAKING', '20')
+				assert.equal(steps[4].id, 13, '21')
+				assert.equal(steps[4].type, 'PUT', '22')
+				assert.equal(steps[3].id, 2, '23')
+				assert.equal(steps[3].type, 'TAKE', '24')
+				assert.equal(steps[3].data, 11, '25')
+
+			}).catch(done)
+		}).then(() => {
+			const chan = new Channel(2)
+			const steps = []
+
+			let putCounter = 0
+			chan.put(++putCounter) // 1
+			chan.put(++putCounter) // 2
+			chan.put(++putCounter) // 3
+			chan.put(++putCounter) // 4
+			chan.put(++putCounter) // 5
+
+			co(function *(){
+				while(true) {
+					++putCounter
+					yield chan.put(putCounter)  // 6
+					steps.push({ id:putCounter, type:'PUT' })
+				}
+			}).catch(done)
+
+			co(function *(){
+				let d = yield chan.take() // 1
+				steps.push({ id:1, type:'TOOK', d })
+				d = yield chan.take() // 2
+				steps.push({ id:2, type:'TOOK', d })
+				d = yield chan.take() // 3
+				steps.push({ id:3, type:'TOOK', d })
+				d = yield chan.take() // 4
+				steps.push({ id:4, type:'TOOK', d })
+				d = yield chan.take() // 5
+				steps.push({ id:5, type:'TOOK', d })
+				d = yield chan.take() // 6
+				steps.push({ id:6, type:'TOOK', d })
+				d = yield chan.take() // 7
+				steps.push({ id:7, type:'TOOK', d })
+				d = yield chan.take() // 8
+				steps.push({ id:8, type:'TOOK', d })
+
+				assert.equal(steps[0].id, 1, 'A-01')
+				assert.equal(steps[0].type, 'TOOK', 'A-02')
+				assert.equal(steps[0].d, 1, 'A-03')
+
+				assert.equal(steps[1].id, 2, 'A-04')
+				assert.equal(steps[1].type, 'TOOK', 'A-05')
+				assert.equal(steps[1].d, 2, 'A-06')
+				
+				assert.equal(steps[2].id, 3, 'A-07')
+				assert.equal(steps[2].type, 'TOOK', 'A-08')
+				assert.equal(steps[2].d, 3, 'A-09')
+				
+				assert.equal(steps[3].id, 4, 'A-12')
+				assert.equal(steps[3].type, 'TOOK', 'A-13')
+				assert.equal(steps[3].d, 4, 'A-14')
+
+				assert.equal(steps[4].id, 6, 'A-10')
+				assert.equal(steps[4].type, 'PUT', 'A-11')
+				
+				assert.equal(steps[5].id, 5, 'A-17')
+				assert.equal(steps[5].type, 'TOOK', 'A-18')
+				assert.equal(steps[5].d, 5, 'A-19')
+				
+				assert.equal(steps[6].id, 7, 'A-15')
+				assert.equal(steps[6].type, 'PUT', 'A-16')
+				
+				assert.equal(steps[7].id, 6, 'A-22')
+				assert.equal(steps[7].type, 'TOOK', 'A-23')
+				assert.equal(steps[7].d, 6, 'A-24')
+				
+				assert.equal(steps[8].id, 8, 'A-20')
+				assert.equal(steps[8].type, 'PUT', 'A-21')
+				
+				assert.equal(steps[9].id, 7, 'A-27')
+				assert.equal(steps[9].type, 'TOOK', 'A-28')
+				assert.equal(steps[9].d, 7, 'A-29')
+				
+				assert.equal(steps[10].id, 9, 'A-25')
+				assert.equal(steps[10].type, 'PUT', 'A-26')
+				
+				assert.equal(steps[11].id, 8, 'A-32')
+				assert.equal(steps[11].type, 'TOOK', 'A-33')
+				assert.equal(steps[11].d, 8, 'A-34')
 
 				done()
 			}).catch(done)
+
 		}).catch(done)
 	})
 	it('06 - Should let a \'take\' release the next blocked \'put\' if the current \'put\' was immediately released', (done) => {
@@ -319,12 +407,12 @@ describe('Channel', () => {
 			steps.push({ id: 1 })
 			yield delay(10)
 			yield chan.take()
-			steps.push({ id: 3 })
+			steps.push({ id: 2 })
 		})
 		co(function *(){
 			yield delay(5)
 			yield chan.put('ok 2')
-			steps.push({ id: 2 })
+			steps.push({ id: 3 })
 			yield chan.take()
 			steps.push({ id: 4 })
 			try {
@@ -437,12 +525,12 @@ describe('Channel', () => {
 			assert.strictEqual(takeValues[3].id, 4, '15')
 			assert.strictEqual(takeValues[3].val, null, '16')
 			assert.strictEqual(takeValues[4].id, 5, '17')
-			assert.strictEqual(takeValues[4].val, null, '18')
+			assert.strictEqual(takeValues[4].val, false, '18')
 
 			done()
 		}).catch(done)
 	})
-	it('09 - Should support DROPPING channel.', done => {
+	it('09 - Should support DROPPING channel, i.e., the channels drops new \'put\' if the buffer is full.', done => {
 		const chn = new Channel(1, 'dropping')
 		const steps = []
 
@@ -482,7 +570,7 @@ describe('Channel', () => {
 			done()
 		}).catch(done)
 	})
-	it('10 - Should support SLIDING channel.', done => {
+	it('10 - Should support SLIDING channel, i.e., the channels drops the oldest \'put\' if the buffer is full.', done => {
 		const chn = new Channel(1, 'sliding')
 		const steps = []
 
@@ -790,114 +878,6 @@ describe('#subscribe', () => {
 	})
 })
 
-describe('#alts', () => {
-	it('01 - Should return a 2 dimensional array related to the 1st channel that could successfully \'take\'.', done => {
-		const numberChan = new Channel()
-		const letterChan = new Channel()
-
-		numberChan.put(1)
-		letterChan.put('one')
-		numberChan.put(2)
-		letterChan.put('two')
-		numberChan.put(3)
-		letterChan.put('three')
-
-		const steps = []
-		const correctLength = 11
-		co(function *(){
-			while (true) {
-				const [v,chan] = yield alts([numberChan, letterChan])
-				steps.push({ v,chan })
-				if (steps.length == correctLength) {
-					assert.strictEqual(steps[0].v, 1, '01')
-					assert.strictEqual(steps[1].v, 2, '02')
-					assert.strictEqual(steps[2].v, 3, '03')
-					assert.strictEqual(steps[3].v, 'one', '04')
-					assert.strictEqual(steps[4].v, 'two', '05')
-					assert.strictEqual(steps[5].v, 'three', '06')
-					assert.strictEqual(steps[6].v, 'four', '07')
-					assert.strictEqual(steps[7].v, 'five', '08')
-					assert.strictEqual(steps[8].v, 6, '09')
-					assert.strictEqual(steps[9].v, 7, '10')
-					assert.strictEqual(steps[10].v, 'eight', '11')
-
-					assert.strictEqual(steps[0].chan, numberChan, '12')
-					assert.strictEqual(steps[1].chan, numberChan, '13')
-					assert.strictEqual(steps[2].chan, numberChan, '14')
-					assert.strictEqual(steps[3].chan, letterChan, '15')
-					assert.strictEqual(steps[4].chan, letterChan, '16')
-					assert.strictEqual(steps[5].chan, letterChan, '17')
-					assert.strictEqual(steps[6].chan, letterChan, '18')
-					assert.strictEqual(steps[7].chan, letterChan, '19')
-					assert.strictEqual(steps[8].chan, numberChan, '20')
-					assert.strictEqual(steps[9].chan, numberChan, '21')
-					assert.strictEqual(steps[10].chan, letterChan, '22')
-
-					done()
-				} else if (steps.length > correctLength)
-					assert.equal(steps.length, correctLength, '12')
-			}
-		}).catch(done)
-
-		delay(17).then(() => letterChan.put('eight'))
-		delay(2).then(() => letterChan.put('four'))
-		delay(8).then(() => numberChan.put(6))
-		delay(5).then(() => letterChan.put('five'))
-		delay(13).then(() => numberChan.put(7))
-
-		delay(50).then(() => assert.equal(steps.length, correctLength, '12')).catch(done)
-	})
-	it('02 - Should ignore channels that have been closed', done => {
-		const numberChan = new Channel()
-		const letterChan = new Channel()
-
-		numberChan.put(1)
-		letterChan.put('one')
-		numberChan.put(2)
-		letterChan.put('two')
-		numberChan.put(3)
-		letterChan.put(null)
-
-		const steps = []
-		const correctLength = 7
-		co(function *(){
-			while (true) {
-				const [v,chan] = yield alts([numberChan, letterChan])
-
-				steps.push({ v,chan })
-				if (steps.length == correctLength) {
-					assert.strictEqual(steps[0].v, 1, '01')
-					assert.strictEqual(steps[1].v, 2, '02')
-					assert.strictEqual(steps[2].v, 3, '03')
-					assert.strictEqual(steps[3].v, 'one', '04')
-					assert.strictEqual(steps[4].v, 'two', '05')
-					assert.strictEqual(steps[5].v, 6, '06')
-					assert.strictEqual(steps[6].v, 7, '07')
-
-					assert.strictEqual(steps[0].chan, numberChan, '08')
-					assert.strictEqual(steps[1].chan, numberChan, '09')
-					assert.strictEqual(steps[2].chan, numberChan, '10')
-					assert.strictEqual(steps[3].chan, letterChan, '11')
-					assert.strictEqual(steps[4].chan, letterChan, '12')
-					assert.strictEqual(steps[5].chan, numberChan, '13')
-					assert.strictEqual(steps[6].chan, numberChan, '14')
-
-					done()
-				} else if (steps.length > correctLength)
-					assert.equal(steps.length, correctLength, '15')
-			}
-		}).catch(done)
-
-		delay(17).then(() => letterChan.put('eight'))
-		delay(2).then(() => letterChan.put('four'))
-		delay(8).then(() => numberChan.put(6))
-		delay(5).then(() => letterChan.put('five'))
-		delay(13).then(() => numberChan.put(7))
-
-		delay(50).then(() => assert.equal(steps.length, correctLength, '15')).catch(done)
-	})
-})
-
 describe('#merge', () => {
 	it('01 - Should merge many channels into a one', done => {
 		const numberChan = new Channel()
@@ -998,6 +978,145 @@ describe('#timeout', () => {
 	})
 })
 
+describe('#alts', () => {
+	// it('01 - Should return a 2 dimensional array related to the 1st channel that could successfully \'take\'.', done => {
+	// 	const numberChan = new Channel()
+	// 	const letterChan = new Channel()
+
+	// 	numberChan.put(1)
+	// 	letterChan.put('one')
+	// 	numberChan.put(2)
+	// 	letterChan.put('two')
+	// 	numberChan.put(3)
+	// 	letterChan.put('three')
+
+	// 	const steps = []
+	// 	const correctLength = 11
+	// 	let counter = 0
+	// 	co(function *(){
+	// 		while (true) {
+	// 			const [v,chan] = yield alts([numberChan, letterChan], ++counter)
+	// 			steps.push({ v,chan })
+	// 			if (steps.length == correctLength) {
+	// 				assert.strictEqual(steps[0].v, 1, '01')
+	// 				assert.strictEqual(steps[1].v, 'one', '02')
+	// 				assert.strictEqual(steps[2].v, 2, '03')
+	// 				assert.strictEqual(steps[3].v, 'two', '04')
+	// 				assert.strictEqual(steps[4].v, 3, '05')
+	// 				assert.strictEqual(steps[5].v, 'three', '06')
+	// 				assert.strictEqual(steps[6].v, 'four', '07')
+	// 				assert.strictEqual(steps[7].v, 'five', '08')
+	// 				assert.strictEqual(steps[8].v, 6, '09')
+	// 				assert.strictEqual(steps[9].v, 7, '10')
+	// 				assert.strictEqual(steps[10].v, 'eight', '11')
+
+	// 				assert.strictEqual(steps[0].chan, numberChan, '12')
+	// 				assert.strictEqual(steps[1].chan, letterChan, '13')
+	// 				assert.strictEqual(steps[2].chan, numberChan, '14')
+	// 				assert.strictEqual(steps[3].chan, letterChan, '15')
+	// 				assert.strictEqual(steps[4].chan, numberChan, '16')
+	// 				assert.strictEqual(steps[5].chan, letterChan, '17')
+	// 				assert.strictEqual(steps[6].chan, letterChan, '18')
+	// 				assert.strictEqual(steps[7].chan, letterChan, '19')
+	// 				assert.strictEqual(steps[8].chan, numberChan, '20')
+	// 				assert.strictEqual(steps[9].chan, numberChan, '21')
+	// 				assert.strictEqual(steps[10].chan, letterChan, '22')
+
+	// 				done()
+	// 			} else if (steps.length > correctLength)
+	// 				assert.equal(steps.length, correctLength, '12')
+	// 		}
+	// 	}).catch(done)
+
+	// 	delay(17).then(() => letterChan.put('eight'))
+	// 	delay(2).then(() => letterChan.put('four'))
+	// 	delay(8).then(() => numberChan.put(6))
+	// 	delay(5).then(() => letterChan.put('five'))
+	// 	delay(13).then(() => numberChan.put(7))
+
+	// 	delay(50).then(() => assert.equal(steps.length, correctLength, '12')).catch(done)
+	// })
+	// it('02 - Should ignore channels that have been closed.', done => {
+	// 	const numberChan = new Channel()
+	// 	const letterChan = new Channel()
+
+	// 	numberChan.put(1)
+	// 	letterChan.put('one')
+	// 	numberChan.put(2)
+	// 	letterChan.put('two')
+	// 	numberChan.put(3)
+	// 	letterChan.put(null)
+
+	// 	const steps = []
+	// 	const correctLength = 7
+	// 	co(function *(){
+	// 		while (true) {
+	// 			const [v,chan] = yield alts([numberChan, letterChan])
+
+	// 			steps.push({ v,chan })
+	// 			if (steps.length == correctLength) {
+	// 				assert.strictEqual(steps[0].v, 1, '01')
+	// 				assert.strictEqual(steps[1].v, 'one', '02')
+	// 				assert.strictEqual(steps[2].v, 2, '03')
+	// 				assert.strictEqual(steps[3].v, 'two', '04')
+	// 				assert.strictEqual(steps[4].v, 3, '05')
+	// 				assert.strictEqual(steps[5].v, 6, '06')
+	// 				assert.strictEqual(steps[6].v, 7, '07')
+
+	// 				assert.strictEqual(steps[0].chan, numberChan, '08')
+	// 				assert.strictEqual(steps[1].chan, letterChan, '09')
+	// 				assert.strictEqual(steps[2].chan, numberChan, '10')
+	// 				assert.strictEqual(steps[3].chan, letterChan, '11')
+	// 				assert.strictEqual(steps[4].chan, numberChan, '12')
+	// 				assert.strictEqual(steps[5].chan, numberChan, '13')
+	// 				assert.strictEqual(steps[6].chan, numberChan, '14')
+
+	// 				done()
+	// 			} else if (steps.length > correctLength)
+	// 				assert.equal(steps.length, correctLength, '15')
+	// 		}
+	// 	}).catch(done)
+
+	// 	delay(17).then(() => letterChan.put('eight'))
+	// 	delay(2).then(() => letterChan.put('four'))
+	// 	delay(8).then(() => numberChan.put(6))
+	// 	delay(5).then(() => letterChan.put('five'))
+	// 	delay(13).then(() => numberChan.put(7))
+
+	// 	delay(50).then(() => assert.equal(steps.length, correctLength, '15')).catch(done)
+	// })
+	it('03 - Should supports the timeout scenario.', done => {
+		const numberChan = new Channel()
+		let d = false
+		// 1. Keeps adding number forever
+		co(function *(){
+			let counter = 0
+			while(true) {
+				yield numberChan.put(++counter)
+			}
+		})
+
+		// 2. Exit the process after 3 seconds.
+		co(function *() {
+			const t = timeout(15)
+			let carryOn = true
+			while(carryOn) {
+				const [,chan] = yield alts([numberChan,t])
+				// Checks which channel has returned. If this is the 'timeout' channel, then stop.
+				carryOn = chan != t
+			}
+			d = true
+			done()
+		})
+
+		co(function *() {
+			yield timeout(25).take()
+			if (!d)
+				done(new Error('Should have time out after 15 ms.'))
+		})
+	})
+})
+
 describe('#throttle', () => {
 	it('01 - Should throttles concurrent tasks.', done => {
 		
@@ -1017,7 +1136,7 @@ describe('#throttle', () => {
 			assert.equal(results.length, 9, '01')
 			assert.strictEqual(Math.abs(results[0]-results[1]) < 5, true, '02')
 			assert.strictEqual(Math.abs(results[1]-results[2]) < 5, true, '03')
-			assert.strictEqual(Math.abs(results[2]-results[3]) > 20, true, '04')
+			assert.strictEqual(Math.abs(results[2]-results[3]) > 18, true, '04')
 			assert.strictEqual(Math.abs(results[3]-results[4]) < 5, true, '05')
 			assert.strictEqual(Math.abs(results[4]-results[5]) < 5, true, '06')
 			assert.strictEqual(Math.abs(results[5]-results[6]) > 10, true, '07')

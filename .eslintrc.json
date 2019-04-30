@@ -10,7 +10,8 @@
         "describe": false,
         "it": false,
         "Buffer": false,
-        "__dirname": false
+        "__dirname": false,
+        "setImmediate": false
     },
     "parserOptions": {
         "sourceType": "module",

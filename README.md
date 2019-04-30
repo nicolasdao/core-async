@@ -5,14 +5,18 @@ __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It
 
 > * [Install](#install) 
 > * [How To Use It](#how-to-use-it) 
->   - [Basic](#basic)
->   - [Buffered vs Unbuffered Channels](#buffered-vs-unbuffered-channels)
->   - [API](#api)
+>	- [Basic](#basic)
+>	- [Buffered vs Unbuffered Channels](#buffered-vs-unbuffered-channels)
+>	- [Dropping and Sliding Channels](#dropping-and-sliding-channels)
+>	- [API](#api)
 >		- [put - take - sput - stake](#put---take---sput---stake)
 >		- [alts](#alts)
+>		- [timeout](#timeout)
 >		- [merge](#merge)
 >		- [subscribe](#subscribe)
 >		- [throttle](#throttle)
+> * [Common Patterns & Idiomatic Style](#common-patterns--idiomatic-style)
+>	- [Dealing With Timeout](#dealing-with-timeout)
 > * [Examples](#examples)
 >		- [Monitoring Stock Prices](#monitoring-stock-prices)
 > * [About Neap](#this-is-what-we-re-up-to)
@@ -119,7 +123,7 @@ const slidingChan = new Channel(2, 'sliding')
 ...
 ```
 
-More detailed doc coming soon...
+More detailed doc coming soon... 
 
 # API
 ## put - take - sput - stake
@@ -174,13 +178,31 @@ chan2.put('world')
 
 More detailed doc coming soon...
 
+## timeout
+
+`timeout` returns an empty buffer channel that puts a brick onto it after a predetermined amount of milliseconds. This designs to deal with timeouts in a very idiomatic way as demontrated in the [Dealing With Timeout](#dealing-with-timeout) section.
+
+```js
+const co = require('co')
+const { timeout } = require('core-async')
+
+co(function *() {
+	const t = timeout(5000)
+	console.log('Start waiting for 5 seconds...')
+
+	yield t.take()
+
+	console.log('Done waiting!')
+})
+```
+
 ## merge
 
 > WARNING: This API is not part of the original Clojure core.async library. It was added because of its frequent usage and many common scenarios.
 
 ```js
 const co = require('co')
-const { Channel, merge } = require('core-async')
+const { Channel, tools: { merge } } = require('core-async')
 
 const chan1 = new Channel()
 const chan2 = new Channel()
@@ -210,7 +232,7 @@ More detailed doc coming soon...
 
 ```js
 const co = require('co')
-const { Channel, subscribe } = require('core-async')
+const { Channel, tools: { subscribe } } = require('core-async')
 
 const source = new Channel()
 
@@ -251,7 +273,7 @@ More detailed doc coming soon...
 
 ```js
 const co = require('co')
-const { throttle } = require('core-async')
+const { tools: { throttle } } = require('core-async')
 
 const delay = t => new Promise(resolve => setTimeout(resolve, t))
 const seed = (size=0) => Array.apply(null, Array(size))
@@ -270,6 +292,37 @@ co(function *(){
 More detailed doc coming soon...
 
 
+# Common Patterns & Idiomatic Style
+## Dealing With Timeout
+
+With channels, the combination of the `alts` and `timeout` functions makes dealing with timeouts straightforward:
+
+```js
+const co = require('co')
+const { Channel, alts, timeout } = require('core-async')
+
+const numberChan = new Channel()
+
+// 1. Keeps adding number forever
+co(function *(){
+	let counter = 0
+	while(true)
+		yield numberChan.put(++counter)
+})
+
+// 2. Exit the process after 3 seconds.
+co(function *() {
+	const t = timeout(3000)
+	let carryOn = true
+	while(carryOn) {
+		const [v,chan] = yield alts([numberChan,t])
+		// Checks which channel has returned. If this is the 'timeout' channel, then stop.
+		carryOn = chan != t
+		if (carryOn) console.log(`Number: ${v}`) 
+	}
+	console.log(`We're done here.`)
+})
+```
 
 
 # Examples
