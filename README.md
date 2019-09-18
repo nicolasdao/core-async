@@ -1,4 +1,4 @@
-# Core Async JS &middot;  [![NPM](https://img.shields.io/npm/v/core-async.svg?style=flat)](https://www.npmjs.com/package/core-async) [![Tests](https://travis-ci.org/nicolasdao/core-async.svg?branch=master)](https://travis-ci.org/nicolasdao/core-async) [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Neap](https://neap.co/img/made_by_neap.svg)](#this-is-what-we-re-up-to)
+# Core Async JS &middot;  [![NPM](https://img.shields.io/npm/v/core-async.svg?style=flat)](https://www.npmjs.com/package/core-async) [![Tests](https://travis-ci.org/nicolasdao/core-async.svg?branch=master)](https://travis-ci.org/nicolasdao/core-async) [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Neap](https://neap.co/img/made_by_neap.svg)](#this-is-what-we-re-up-to) [![npm downloads](https://img.shields.io/npm/dt/core-async.svg?style=flat)](https://www.npmjs.com/package/core-async)
 __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It is designed to be used with the npm package 'co'.
 
 # Table of Contents
