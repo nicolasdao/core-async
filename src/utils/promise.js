@@ -23,28 +23,45 @@ const getRandomNumber = ({ start, end }) => {
  * @param  {Number|[Number]} timeout 	If array, it must contain 2 numbers representing an interval used to select a random number
  * @return {Promise}         			[description]
  */
-const delay = timeout => Promise.resolve(null).then(() => {
-	let t = timeout || 100
-	if (Array.isArray(timeout)) {
-		if (timeout.length != 2)
-			throw new Error('Wrong argument exception. When \'timeout\' is an array, it must contain exactly 2 number items.')
+const delay = (timeout) => {
+	let tRef
+	let finished = false
+	let output = Promise.resolve(null).then(() => {
+		let t = timeout || 100
+		if (Array.isArray(timeout)) {
+			if (timeout.length != 2)
+				throw new Error('Wrong argument exception. When \'timeout\' is an array, it must contain exactly 2 number items.')
 
-		const start = timeout[0] * 1
-		const end = timeout[1] * 1
+			const start = timeout[0] * 1
+			const end = timeout[1] * 1
 
-		if (isNaN(start))
-			throw new Error(`Wrong argument exception. The first item of the 'timeout' array is not a number (current: ${timeout[0]})`)
+			if (isNaN(start))
+				throw new Error(`Wrong argument exception. The first item of the 'timeout' array is not a number (current: ${timeout[0]})`)
 
-		if (isNaN(end))
-			throw new Error(`Wrong argument exception. The second item of the 'timeout' array is not a number (current: ${timeout[1]})`)
+			if (isNaN(end))
+				throw new Error(`Wrong argument exception. The second item of the 'timeout' array is not a number (current: ${timeout[1]})`)
 
-		if (start > end)
-			throw new Error(`Wrong argument exception. The first number of the 'timeout' array must be strictly smaller than the second number (current: [${timeout[0]}, ${timeout[1]}])`)			
+			if (start > end)
+				throw new Error(`Wrong argument exception. The first number of the 'timeout' array must be strictly smaller than the second number (current: [${timeout[0]}, ${timeout[1]}])`)			
 
-		t = getRandomNumber(start, end)
+			t = getRandomNumber({ start, end })
+		}
+		
+		return new Promise(onSuccess => {
+			tRef = setTimeout(() => {
+				finished = true
+				onSuccess()
+			}, t)
+		})
+	})
+
+	output.cancel = () => {
+		if (!finished)
+			clearTimeout(tRef) 
 	}
-	return new Promise(onSuccess => setTimeout(onSuccess, t))
-})
+
+	return output
+}
 
 module.exports = {
 	delay

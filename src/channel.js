@@ -124,16 +124,25 @@ const timeout = time => {
 			t = t0
 	} 
 
-	const out = new Channel()
-	delay(t).then(() => out.put('timeout'))
+	const d = delay(t)
+	const out = new Channel(null, null, { onClosing:d.cancel })
+	d.then(() => out.put('timeout'))
 	return out
 }
 
 let _pushCounter = 0
 let _pullCounter = 0
-const Channel = function(buffer,mode) {
+/**
+ * Creates a new Channel object.
+ * 
+ * @param {Number} buffer  				(optional, default 0). 
+ * @param {String} mode    				(optional, default 'default'). Valid values: 'default', 'sliding' and 'dropping'
+ * @param {Function} options.onClosing	Functions executed when the 'close' method is called.
+ */
+const Channel = function(buffer,mode,options) {
 	buffer = buffer || 0
 	mode = (mode || DEFAULT_MODE).toLowerCase().trim()
+	const { onClosing } = options || {}
 
 	if (typeof(buffer) != 'number')
 		throw new Error(`Wrong argument exception. 'buffer' must be a number (current type: '${typeof(number)}').`)
@@ -142,6 +151,8 @@ const Channel = function(buffer,mode) {
 		throw new Error(`Wrong argument exception. 'mode' can only equal to 'default', 'dropping' or 'sliding' (current: '${mode}').`)
 	if ((mode == DROPPING_MODE || mode == SLIDING_MODE) && buffer < 1)
 		throw new Error('Wrong argument exception. When the Channel\'s mode is \'dropping\' or \'sliding\', the buffer must be greater than 0.')
+	if (onClosing && typeof(onClosing) != 'function')
+		throw new Error(`Wrong argument exception. 'options.onClosing' must be a function (current type: ${typeof(onClosing)}).`)
 
 	const _this = this
 
@@ -194,6 +205,8 @@ const Channel = function(buffer,mode) {
 	this.close = () => {
 		_this.opened = false
 		_this.closing = true
+		if (onClosing)
+			onClosing()
 
 		while (_getOldestPullRequest()) {
 			const pullRequest = _popOldestPullRequest()

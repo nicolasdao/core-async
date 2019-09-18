@@ -434,6 +434,10 @@ describe('Channel', () => {
 		const putValues = []
 		const takeValues = []
 		
+		assert.isOk(chan.opened, '-03')
+		assert.isNotOk(chan.closing, '-02')
+		assert.isNotOk(chan.closed, '-01')
+
 		chan.put(1).then(p1 => {
 			putValues.push({ id:1, val:p1 })
 			assert.strictEqual(p1, false, '00')
@@ -474,6 +478,10 @@ describe('Channel', () => {
 			assert.strictEqual(takeValues[2].val, null, '14')
 			assert.strictEqual(takeValues[3].id, 4, '15')
 			assert.strictEqual(takeValues[3].val, null, '16')
+
+			assert.isNotOk(chan.opened, '17')
+			assert.isOk(chan.closing, '18')
+			assert.isOk(chan.closed, '19')
 
 			done()
 		}).catch(done)
