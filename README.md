@@ -17,6 +17,7 @@ __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It
 >		- [throttle](#throttle)
 > * [Common Patterns & Idiomatic Style](#common-patterns--idiomatic-style)
 >	- [Dealing With Timeout](#dealing-with-timeout)
+>	- [Why you should always close your channel when you're done with it](#why-you-should-always-close-your-channel-when-youre-done-with-it)
 > * [Examples](#examples)
 >	- [Monitoring Stock Prices](#monitoring-stock-prices)
 > * [About Neap](#this-is-what-we-re-up-to)
@@ -83,6 +84,11 @@ co(function *() {
 	// Waiting for answer from thread 1
 	const msg3 = yield chatBetween_t1_t2.take()
 	console.log(`T1 says: ${msg3}`)
+
+	// Closing channel. Though this is not necessary in this case, it is still a best practice 
+	// (more about why it is important to close your channel in the section
+	// 'Why you should always close your channel when you're done with it').
+	chatBetween_t1_t2.close()
 })
 
 // OUTPUT:
@@ -120,7 +126,7 @@ const { Channel } = require('core-async')
 const droppingChan = new Channel(2, 'dropping')
 const slidingChan = new Channel(2, 'sliding')
 
-...
+// ...
 ```
 
 More detailed doc coming soon... 
@@ -324,6 +330,9 @@ co(function *() {
 })
 ```
 
+## Why you should always close your channel when you're done with it
+
+In NodeJS, channels are just a nice pattern to syncronize the event loop so you can write code that leverages complex concurency models. When a channel is created, streaming bricks to it or requesting bricks from it result in adding new tasks on the event loop. There are scenarios where it is desirable that the event loop flushes those tasks, and that's why the `close()` api exists. One such example is properly ending the execution of an AWS Lambda. In theory, an AWS Lambda stops its execution when its callback function is called. However, that's not exactly true. If there are still pending tasks in its event loop, the AWS Lambda will stay idle, potentially consuming bilaable resources for doing nothing. 
 
 # Examples
 ## Monitoring Stock Prices
@@ -369,8 +378,6 @@ const getSignificantPriceChange = (priceHistory, percThreshold) => {
 const sendPriceAlert = ({ ticker, priceChange }) => Promise.resolve({ ticker, priceChange }).then(() => { 
 	console.log(`Price of ${ticker} ${priceChange.percChange < 0 ? 'dropped' : 'increased' } by ${priceChange.percChange}% in the last hour.`) 
 })
-
-
 
 
 // THE INTERESTING PIECE OF CODE THAT USES CORE-ASYNC

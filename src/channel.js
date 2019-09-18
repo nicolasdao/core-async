@@ -188,8 +188,25 @@ const Channel = function(buffer,mode) {
 		return pullRequest
 	}
 
+	this.opened = true
 	this.closed = false
-	this.close = () => _this.closed = true
+	this.closing = false
+	this.close = () => {
+		_this.opened = false
+		_this.closing = true
+
+		while (_getOldestPullRequest()) {
+			const pullRequest = _popOldestPullRequest()
+			const brick = _getOldestPushRequest() ? ((_popOldestPushRequest() || {}).brick || null) : null
+			pullRequest.next(brick)
+		}
+		while (_getOldestPushRequest()) {
+			const pushRequest = _popOldestPushRequest()
+			pushRequest.next(false)
+		}
+
+		_this.closed = true
+	}
 
 	this.getOldestPushRequest = _getOldestPushRequest
 	this.getOldestPullRequest = _getOldestPullRequest
@@ -197,7 +214,7 @@ const Channel = function(buffer,mode) {
 	this.push = (brick,next) => {
 		if (brick === null)
 			_this.close()
-		if (_this.closed)
+		if (!_this.opened)
 			return next(null)
 
 		next = next || (() => true)
@@ -242,7 +259,7 @@ const Channel = function(buffer,mode) {
 			pushRequest.next(true)
 			next(pushRequest.brick)
 			_decrementBuffer()
-		} else if (_this.closed)
+		} else if (!_this.opened)
 			next(null)
 		else
 			_pullRequests.push({ seq, next })
