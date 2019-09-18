@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.0.1"></a>
+## [1.0.1](https://github.com/nicolasdao/core-async/compare/v1.0.0...v1.0.1) (2019-09-18)
+
+
+### Bug Fixes
+
+* Closing the timeout channel does not remove the task from the nodejs event loop. ([e923726](https://github.com/nicolasdao/core-async/commit/e923726))
+
+
+
 <a name="1.0.0"></a>
 # [1.0.0](https://github.com/nicolasdao/core-async/compare/v0.1.1...v1.0.0) (2019-09-18)
 
