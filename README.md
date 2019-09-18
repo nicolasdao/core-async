@@ -18,7 +18,7 @@ __*Core Async JS*__ is a JS implementation of the Clojure core.async library. It
 > * [Common Patterns & Idiomatic Style](#common-patterns--idiomatic-style)
 >	- [Dealing With Timeout](#dealing-with-timeout)
 > * [Examples](#examples)
->		- [Monitoring Stock Prices](#monitoring-stock-prices)
+>	- [Monitoring Stock Prices](#monitoring-stock-prices)
 > * [About Neap](#this-is-what-we-re-up-to)
 > * [License](#license)
 
