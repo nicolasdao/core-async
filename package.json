@@ -1,6 +1,6 @@
 {
   "name": "core-async",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "JS implementation of the Clojure core.async library. Designed to be used with the npm package 'co'.",
   "main": "src/index.js",
   "repository": {

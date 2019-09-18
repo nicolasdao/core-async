@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.0.0"></a>
+# [1.0.0](https://github.com/nicolasdao/core-async/compare/v0.1.1...v1.0.0) (2019-09-18)
+
+
+### Bug Fixes
+
+* Closing a channel does not immediately release all puts and takes. ([a9f2e7f](https://github.com/nicolasdao/core-async/commit/a9f2e7f))
+
+
+
 <a name="0.1.1"></a>
 ## [0.1.1](https://github.com/nicolasdao/core-async/compare/v0.1.0...v0.1.1) (2019-04-30)
 
