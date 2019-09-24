@@ -8,5 +8,6 @@
 
 let channel = require('./channel')
 channel.tools = require('./tools')
+channel.co = require('co')
 
 module.exports = channel

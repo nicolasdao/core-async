@@ -3,6 +3,7 @@
   "version": "1.0.1",
   "description": "JS implementation of the Clojure core.async library. Designed to be used with the npm package 'co'.",
   "main": "src/index.js",
+  "module": "src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/nicolasdao/core-async.git"
