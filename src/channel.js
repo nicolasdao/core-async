@@ -18,10 +18,20 @@ VALID_MODES[DEFAULT_MODE] = true
 VALID_MODES[SLIDING_MODE] = true
 VALID_MODES[DROPPING_MODE] = true
 
+const _getSetImmediate = () => {
+	try {
+		return setImmediate
+	} catch(err) {
+		return (() => fn => setTimeout(fn,0))(err)
+	}
+}
+
+const _setImmediate = _getSetImmediate()
+
 const put = (chan,brick,options) => {
 	const { timeout:t } = options || {}
 	let seq 
-	const p = new Promise(resolve => seq = chan.push(brick,v => setImmediate(() => resolve(v))))
+	const p = new Promise(resolve => seq = chan.push(brick,v => _setImmediate(() => resolve(v))))
 	if (t > 0)
 		return Promise.race([delay(t).then(() => TIMEOUT),p]).then(v => {
 			if (v != TIMEOUT)
@@ -47,7 +57,7 @@ const sput = (chan,brick) => {
 const take = (chan,options) => {
 	const { timeout:t } = options || {}
 	let seq 
-	const p = new Promise(resolve => seq = chan.pull(brick => setImmediate(() => resolve(brick))))
+	const p = new Promise(resolve => seq = chan.pull(brick => _setImmediate(() => resolve(brick))))
 	if (t > 0)
 		return Promise.race([delay(t).then(() => TIMEOUT),p]).then(v => {
 			if (v != TIMEOUT)
