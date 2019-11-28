@@ -1,6 +1,13 @@
-# Change Log
+# Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+### [1.0.4](https://github.com/nicolasdao/core-async/compare/v1.0.3...v1.0.4) (2019-11-28)
+
+
+### Bug Fixes
+
+* 5 vulnerabilities (1 low, 1 moderate, 3 high) ([77f2fdf](https://github.com/nicolasdao/core-async/commit/77f2fdf85781dd47ade2dca583294f6c739b7c91))
 
 <a name="1.0.3"></a>
 ## [1.0.3](https://github.com/nicolasdao/core-async/compare/v1.0.2...v1.0.3) (2019-09-24)
