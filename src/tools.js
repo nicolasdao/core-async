@@ -7,13 +7,49 @@
 */
 
 const co = require('co')
-const { error: { throwIfNotTruthy } } = require('./utils')
+const { collection: { sortBy }, promise:{ delay }, error: { throwIfNotTruthy, throwIfNotNumber } } = require('./utils')
 const { Channel } = require('./channel')
+const { stake } = require('./fn')
 
 /**
- * [description]
- * @param  {[Channel]} channels [description]
- * @return {Channel}     		[description]
+ * Returns an unbuffered Channel that will receive a 'timeout' message after a 
+ * period of time determined by 'time'
+ * 
+ * @param  {Number|[Number]} time 	The numbers are in milliseconds. If it is an array, it must contain 2 numbers representing 
+ *                                 	an interval used to select a random number
+ * @return {Channel}      			[description]
+ */
+const timeout = time => {
+	throwIfNotTruthy(time,'time')
+	const isArray = Array.isArray(time)
+	if (typeof(time) != 'number' && !isArray)
+		throw new Error('Wrong argument exception. \'time\' must either be a number or an 2D array of numbers')
+
+	let t = time
+	if (isArray) {
+		const t0 = time[0] < 0 ? 0 : time[0]
+		const t1 = time[1] < 0 ? 0 : time[1]
+		throwIfNotNumber(t0,'time[0]')
+		throwIfNotNumber(t1,'time[1]')
+
+		if (t0 > t1)
+			throw new Error('Wrong argument exception. \'time[0]\' must be strictly smaller or equal to \'time[1]\'')
+
+		if (t0 == t1)
+			t = t0
+	} 
+
+	const d = delay(t)
+	const out = new Channel(null, null, { onClosing:d.cancel })
+	d.then(() => out.put('timeout'))
+	return out
+}
+
+/**
+ * Returns a channel which inputs are the taken bricks of all the channels.
+ * 
+ * @param  {[Channel]}	channels Array of channels whose output is ingested by 'outputChan'.
+ * @return {Channel}	outputChan
  */
 const merge = channels => {
 	throwIfNotTruthy(channels, 'channels')
@@ -178,11 +214,38 @@ const throttle = (tasks, buffer) => co(function *(){
 	return yield results
 })
 
+const alts = (channels) => co(function *(){
+	yield Promise.race(channels.map(chan => new Promise(resolve => {
+		const putRequest = chan.getOldestPushRequest()
+		if (putRequest)
+			resolve({ chan, seq:putRequest.seq })
+		else
+			chan.listenToUnresolvedPushRequest(resolve)
+	})))
+
+	const { chan:realWinner } = sortBy(channels
+		.map(chan => {
+			chan.stopListeningToUnresolvedPushRequest()
+			const putRequest = chan.getOldestPushRequest()
+			if (putRequest)
+				return { chan, seq:putRequest.seq }
+			else
+				return false
+		})
+		.filter(x => x),
+	({ seq }) => seq)[0]
+
+	const brick = stake(realWinner)
+	return [brick,realWinner]
+})
+
 module.exports = {
 	PubSub,
 	subscribe,
 	merge,
-	throttle
+	throttle,
+	timeout,
+	alts
 }
 
 

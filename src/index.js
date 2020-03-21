@@ -6,8 +6,9 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-let channel = require('./channel')
-channel.tools = require('./tools')
-channel.co = require('co')
-
-module.exports = channel
+module.exports = {
+	...require('./channel'),
+	co: require('co'),
+	utils: require('./tools'),
+	transducer: require('./transducer'),
+}

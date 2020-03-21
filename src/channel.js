@@ -7,152 +7,46 @@
 */
 
 const co = require('co')
-const { collection: { sortBy }, promise:{ delay }, error: { throwIfNotNumber, throwIfNotTruthy } } = require('./utils')
+const { put, take, sput, stake } = require('./fn')
 
-const TIMEOUT = '__timeout'
 const DEFAULT_MODE = 'default'
 const SLIDING_MODE = 'sliding'
 const DROPPING_MODE = 'dropping'
+const NOMATCHKEY = 'no_match_7WmYhpJF33VG3X2dEqCQSwauKRb4zrPIRCh19zDF'
 let VALID_MODES = {}
 VALID_MODES[DEFAULT_MODE] = true
 VALID_MODES[SLIDING_MODE] = true
 VALID_MODES[DROPPING_MODE] = true
-
-const _getSetImmediate = () => {
-	try {
-		return setImmediate
-	} catch(err) {
-		return (() => fn => setTimeout(fn,0))(err)
-	}
-}
-
-const _setImmediate = _getSetImmediate()
-
-const put = (chan,brick,options) => {
-	const { timeout:t } = options || {}
-	let seq 
-	const p = new Promise(resolve => seq = chan.push(brick,v => _setImmediate(() => resolve(v))))
-	if (t > 0)
-		return Promise.race([delay(t).then(() => TIMEOUT),p]).then(v => {
-			if (v != TIMEOUT)
-				return
-			chan.cancelPush(seq)
-			let err = new Error(`'put' timed out after ${t} ms. No data was added to the channel.`)
-			err.code = 408
-			throw err
-		})
-	else
-		return p
-}
-
-const sput = (chan,brick) => {
-	if (chan.getOldestPullRequest()) {
-		chan.push(brick)
-		return true 
-	}
-
-	return false
-}
-
-const take = (chan,options) => {
-	const { timeout:t } = options || {}
-	let seq 
-	const p = new Promise(resolve => seq = chan.pull(brick => _setImmediate(() => resolve(brick))))
-	if (t > 0)
-		return Promise.race([delay(t).then(() => TIMEOUT),p]).then(v => {
-			if (v != TIMEOUT)
-				return
-			chan.cancelPull(seq)
-			let err = new Error(`'take' timed out after ${t} ms. No data was taken off the channel.`)
-			err.code = 408
-			throw err
-		})
-	else
-		return p
-}
-
-const stake = chan => {
-	if (chan.getOldestPushRequest()) {
-		let brick
-		chan.pull(b => brick = b)
-		return brick 
-	}
-
-	return false
-}
-
-const alts = (channels) => co(function *(){
-	yield Promise.race(channels.map(chan => new Promise(resolve => {
-		const putRequest = chan.getOldestPushRequest()
-		if (putRequest)
-			resolve({ chan, seq:putRequest.seq })
-		else
-			chan.listenToUnresolvedPushRequest(resolve)
-	})))
-
-	const { chan:realWinner } = sortBy(channels
-		.map(chan => {
-			chan.stopListeningToUnresolvedPushRequest()
-			const putRequest = chan.getOldestPushRequest()
-			if (putRequest)
-				return { chan, seq:putRequest.seq }
-			else
-				return false
-		})
-		.filter(x => x),
-	({ seq }) => seq)[0]
-
-	const brick = stake(realWinner)
-	return [brick,realWinner]
-})
-
-/**
- * Returns an unbuffered Channel that will receive a 'timeout' message after a 
- * period of time determined by 'time'
- * 
- * @param  {Number|[Number]} time 	The numbers are in milliseconds. If it is an array, it must contain 2 numbers representing 
- *                                 	an interval used to select a random number
- * @return {Channel}      			[description]
- */
-const timeout = time => {
-	throwIfNotTruthy(time,'time')
-	const isArray = Array.isArray(time)
-	if (typeof(time) != 'number' && !isArray)
-		throw new Error('Wrong argument exception. \'time\' must either be a number or an 2D array of numbers')
-
-	let t = time
-	if (isArray) {
-		const t0 = time[0] < 0 ? 0 : time[0]
-		const t1 = time[1] < 0 ? 0 : time[1]
-		throwIfNotNumber(t0,'time[0]')
-		throwIfNotNumber(t1,'time[1]')
-
-		if (t0 > t1)
-			throw new Error('Wrong argument exception. \'time[0]\' must be strictly smaller or equal to \'time[1]\'')
-
-		if (t0 == t1)
-			t = t0
-	} 
-
-	const d = delay(t)
-	const out = new Channel(null, null, { onClosing:d.cancel })
-	d.then(() => out.put('timeout'))
-	return out
-}
 
 let _pushCounter = 0
 let _pullCounter = 0
 /**
  * Creates a new Channel object.
  * 
- * @param {Number} buffer  				(optional, default 0). 
- * @param {String} mode    				(optional, default 'default'). Valid values: 'default', 'sliding' and 'dropping'
- * @param {Function} options.onClosing	Functions executed when the 'close' method is called.
+ * @param {Number}		buffer  			(optional, default 0). 
+ * @param {Function}	transform  			
+ * @param {String}		options.mode		(optional, default 'default'). Valid values: 'default', 'sliding' and 'dropping'
+ * @param {Function}	options.onClosing	Functions executed when the 'close' method is called.
  */
-const Channel = function(buffer,mode,options) {
+const Channel = function(...args) {
+	let [a1, a2, a3] = args
+	let transform, buffer, options
+	if (typeof(a1) == 'function') {
+		transform = a1
+		options = a2
+	} else if (typeof(a2) == 'function')  {
+		buffer = a1
+		transform = a2
+		options = a3
+	} else {
+		buffer = a1
+		options = a2
+	}
+
+	options = options || {}
 	buffer = buffer || 0
+	let { onClosing, mode } = options || {}
 	mode = (mode || DEFAULT_MODE).toLowerCase().trim()
-	const { onClosing } = options || {}
 
 	if (typeof(buffer) != 'number')
 		throw new Error(`Wrong argument exception. 'buffer' must be a number (current type: '${typeof(number)}').`)
@@ -309,8 +203,25 @@ const Channel = function(buffer,mode,options) {
 		}
 	}
 
-	this.put = (brick,options) => put(_this,brick,options)
-	this.sput = (brick) => sput(_this,brick)
+	this.put = (brick,options) => co(function *() {
+		if (transform) {
+			const b = yield transform(brick)
+			if (b === NOMATCHKEY)
+				return false
+			return yield put(_this,b,options)
+		} else 
+			return yield put(_this,brick,options)
+	})
+	this.sput = (brick) => {
+		if (transform) 
+			return transform(brick).then(b => {
+				if (b === NOMATCHKEY)
+					return false
+				return sput(_this,b)
+			})
+		else
+			return sput(_this,brick)
+	}
 	this.take = (options) => take(_this,options)
 	this.stake = () => stake(_this)
 
@@ -319,12 +230,7 @@ const Channel = function(buffer,mode,options) {
 
 module.exports = {
 	Channel,
-	alts,
-	put,
-	sput,
-	take,
-	stake,
-	timeout
+	NOMATCHKEY
 }
 
 
