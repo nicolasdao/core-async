@@ -32,10 +32,49 @@ describe('transducer', () => {
 				done()
 			}).catch(done)
 		})
+		it('02 - Should support Promises.', done => {
+			const chan = new Channel(map(x => Promise.resolve(x+1)))
+			
+			co(function *(){
+				yield chan.put(1)
+				yield chan.put(2)
+				yield chan.put(3)
+			})
+
+			co(function *(){
+				const a = yield chan.take()
+				const b = yield chan.take()
+				const c = yield chan.take()
+				assert.equal(a, 2, '01')
+				assert.equal(b, 3, '02')
+				assert.equal(c, 4, '03')
+				done()
+			}).catch(done)
+		})
 	})
 	describe('#filter', () => {
 		it('01 - Should filter bricks.', done => {
 			const chan = new Channel(filter(x => x > 1))
+			
+			co(function *(){
+				let status = yield chan.put(1)
+				assert.strictEqual(status, false, '01')
+				status = yield chan.put(2)
+				assert.strictEqual(status, true, '02')
+				status = yield chan.put(3)
+				assert.strictEqual(status, true, '03')
+			}).catch(done)
+
+			co(function *(){
+				const a = yield chan.take()
+				const b = yield chan.take()
+				assert.equal(a, 2, '04')
+				assert.equal(b, 3, '05')
+				done()
+			}).catch(done)
+		})
+		it('02 - Should support Promises.', done => {
+			const chan = new Channel(filter(x => Promise.resolve(null).then(() => x > 1)))
 			
 			co(function *(){
 				let status = yield chan.put(1)

@@ -16,14 +16,28 @@ const reduce = (fn, acc) => {
 	let _acc = acc
 	let idx = 0
 	return x => co(function *() {
-		_acc = yield Promise.resolve(null).then(() => fn(_acc, x, idx))
+		const v = fn(_acc, x, idx)
+		if (v && v instanceof Promise)
+			_acc = yield v 
+		else {
+			_acc = v
+		}
 		idx++
 		return _acc
 	})
 }
 
 const map = fn => reduce((acc, x, idx) => fn(x,idx))
-const filter = fn => reduce((acc, x, idx) => fn(x,idx) ? x : NOMATCHKEY)
+const filter = fn => reduce((acc, x, idx) => co(function *(){
+	const v = fn(x,idx)
+	let val
+	if (v && v instanceof Promise)
+		val = yield v
+	else
+		val = v
+
+	return val ? x : NOMATCHKEY
+}))
 
 module.exports = {
 	compose,
