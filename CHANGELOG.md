@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.1](https://github.com/nicolasdao/core-async/compare/v2.0.0...v2.0.1) (2020-03-21)
+
+
+### Bug Fixes
+
+* Transducers do not support promises. ([21191c2](https://github.com/nicolasdao/core-async/commit/21191c271dd02793666eeec1198e5ea2cec015e7))
+
 ## [2.0.0](https://github.com/nicolasdao/core-async/compare/v1.0.5...v2.0.0) (2020-03-21)
 
 
