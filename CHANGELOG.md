@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.3](https://github.com/nicolasdao/core-async/compare/v2.0.2...v2.0.3) (2020-03-23)
+
+
+### Bug Fixes
+
+* Cannot cancel timeout ([3b67081](https://github.com/nicolasdao/core-async/commit/3b67081739df0f09428106ae970ef3bbd19daf43))
+
 ### [2.0.2](https://github.com/nicolasdao/core-async/compare/v2.0.1...v2.0.2) (2020-03-22)
 
 ### [2.0.1](https://github.com/nicolasdao/core-async/compare/v2.0.0...v2.0.1) (2020-03-21)
