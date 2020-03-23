@@ -40,7 +40,7 @@ const timeout = time => {
 	} 
 
 	const d = delay(t)
-	const out = new Channel(null, null, { onClosing:d.cancel })
+	const out = new Channel(null, { onClosing:d.cancel })
 	d.then(() => out.put('timeout'))
 	return out
 }

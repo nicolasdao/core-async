@@ -74,6 +74,12 @@ npm i core-async
 
 # APIs
 ## Channel
+
+The Channel object supports three different signatures:
+- `new Channel(<Int> buffer, <Object> options)`
+- `new Channel(<Int> buffer, <Func> transducer, <Object> options)`
+- `new Channel(<Func> transducer, <Object> options)`
+
 ### Buffered vs Unbuffered Channels
 
 ```js
