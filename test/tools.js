@@ -339,7 +339,7 @@ describe('utils', () => {
 				assert.equal(results.length, 9, '01')
 				assert.strictEqual(Math.abs(results[0]-results[1]) < 5, true, '02')
 				assert.strictEqual(Math.abs(results[1]-results[2]) < 5, true, '03')
-				assert.strictEqual(Math.abs(results[2]-results[3]) > 18, true, '04')
+				assert.strictEqual(Math.abs(results[2]-results[3]) > 15, true, '04')
 				assert.strictEqual(Math.abs(results[3]-results[4]) < 5, true, '05')
 				assert.strictEqual(Math.abs(results[4]-results[5]) < 5, true, '06')
 				assert.strictEqual(Math.abs(results[5]-results[6]) > 10, true, '07')
