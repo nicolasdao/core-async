@@ -259,8 +259,6 @@ describe('Channel', () => {
 				_ignoreError(err)
 			}
 
-			console.log(steps)
-
 			assert.equal(steps[8].id, 9, '11')
 			assert.equal(steps[9].id, 10, '12')
 			assert.equal(steps[10].id, 11, '13')
