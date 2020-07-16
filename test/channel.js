@@ -151,6 +151,7 @@ describe('Channel', () => {
 			assert.equal(steps[3].id, 4, '06')
 			assert.equal(steps[4].id, 5, '07')
 			assert.equal(steps[5].id, 6, '08')
+			// this deals with the order in which statements are being executed based on the runtime
 			try {
 				assert.equal(steps[6].id, 8, '09')
 			} catch(err) {
@@ -243,8 +244,21 @@ describe('Channel', () => {
 			assert.equal(steps[3].id, 4, '06')
 			assert.equal(steps[4].id, 5, '07')
 			assert.equal(steps[5].id, 6, '08')
-			assert.equal(steps[6].id, 7, '09')
-			assert.equal(steps[7].id, 8, '10')
+
+			// this deals with the order in which statements are being executed based on the runtime
+			try {
+				assert.equal(steps[6].id, 8, '09')
+			} catch(err) {
+				assert.equal(steps[6].id, 7, '09')
+				_ignoreError(err)
+			}
+			try {
+				assert.equal(steps[7].id, 7, '10')
+			} catch(err) {
+				assert.equal(steps[7].id, 8, '10')
+				_ignoreError(err)
+			}
+
 			assert.equal(steps[8].id, 9, '11')
 			assert.equal(steps[9].id, 10, '12')
 			assert.equal(steps[10].id, 11, '13')
