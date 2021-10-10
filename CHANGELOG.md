@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.5](https://github.com/nicolasdao/core-async/compare/v2.0.4...v2.0.5) (2021-10-10)
+
+
+### Bug Fixes
+
+* remove unecessary logs in the test suite ([a3d1b12](https://github.com/nicolasdao/core-async/commit/a3d1b12f2a24e00830abc22ddcca4257bf988ec0))
+* Test fail the sync challange ([44d9cd2](https://github.com/nicolasdao/core-async/commit/44d9cd2ab476d7c9bd4493c86c04a71b6dcbd05f))
+* Test fail the sync challange ([7db4d7d](https://github.com/nicolasdao/core-async/commit/7db4d7d636b43540668d21bbcb996ed2c352a4c0))
+* Test fail the sync challange ([b9bd466](https://github.com/nicolasdao/core-async/commit/b9bd4664683465da59eb5207df7565a7b11263d6))
+* Test fail the sync challange ([881bd84](https://github.com/nicolasdao/core-async/commit/881bd849fc30f9b2c91422ae193f11c2a41f2b2c))
+* Vulnerabilities ([bf6a1cc](https://github.com/nicolasdao/core-async/commit/bf6a1cccc0afe90cb71653c23a1cac6e28a385f2))
+
 ### [2.0.4](https://github.com/nicolasdao/core-async/compare/v2.0.3...v2.0.4) (2020-07-16)
 
 
