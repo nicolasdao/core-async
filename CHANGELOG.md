@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.6](https://github.com/nicolasdao/core-async/compare/v2.0.5...v2.0.6) (2022-01-30)
+
+
+### Bug Fixes
+
+* Moderate issues in the dependency tree ([a4ed83e](https://github.com/nicolasdao/core-async/commit/a4ed83ee3a968146a4b491f98295f05439bfe511))
+
 ### [2.0.5](https://github.com/nicolasdao/core-async/compare/v2.0.4...v2.0.5) (2021-10-10)
 
 
