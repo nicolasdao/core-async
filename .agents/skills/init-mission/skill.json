@@ -1,0 +1,15 @@
+{
+	"name": "init-mission",
+	"version": "0.2.0",
+	"description": "Interview the user to produce a docs/mission.md capturing business vision, values, non-goals, users, and UX compass.",
+	"keywords": [
+		"mission",
+		"vision",
+		"values",
+		"documentation",
+		"init",
+		"interview"
+	],
+	"type": "skill",
+	"dependencies": {}
+}

@@ -1,0 +1,11 @@
+{
+	"name": "update-doc",
+	"version": "1.2.0",
+	"type": "skill",
+	"description": "Update project docs (docs/, README.md) after features, API changes, CLI commands, or architectural changes. Maintains TOC, creates new doc files when needed.",
+	"keywords": [
+		"devops",
+		"documentation",
+		"docs"
+	]
+}

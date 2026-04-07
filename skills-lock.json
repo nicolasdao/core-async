@@ -1,0 +1,102 @@
+{
+	"lockVersion": 2,
+	"generatedAt": "2026-04-07T05:03:05.913Z",
+	"skills": {
+		"happyskillsai/happyskills": {
+			"version": "1.24.0",
+			"ref": "refs/tags/v1.24.0",
+			"commit": "c6736f852a6be2e124862f770013f787ab499951b359107a4fc6de40fca0ca11",
+			"integrity": "sha256-d2f1ee4b104132d262994d0a4c9ae9aebaed4370dd931462aa7689548f620a58",
+			"base_commit": "c6736f852a6be2e124862f770013f787ab499951b359107a4fc6de40fca0ca11",
+			"base_integrity": "sha256-d2f1ee4b104132d262994d0a4c9ae9aebaed4370dd931462aa7689548f620a58",
+			"requested_by": [
+				"__root__"
+			],
+			"dependencies": {},
+			"type": "skill"
+		},
+		"nicolasdao/_kit-dev-essentials": {
+			"version": "1.0.0",
+			"ref": "refs/tags/v1.0.0",
+			"commit": "e8d528bd5627170c9c813f9028923fcda5d9433a2b78dd29a3d863bdc9369393",
+			"integrity": "sha256-f4fe6b211aa96bbc291c880a4a61682bf5d438a52db0b82e73f42e7126c39e45",
+			"base_commit": "e8d528bd5627170c9c813f9028923fcda5d9433a2b78dd29a3d863bdc9369393",
+			"base_integrity": "sha256-f4fe6b211aa96bbc291c880a4a61682bf5d438a52db0b82e73f42e7126c39e45",
+			"requested_by": [
+				"__root__"
+			],
+			"dependencies": {
+				"nicolasdao/git-commit": "*",
+				"nicolasdao/update-doc": "*",
+				"nicolasdao/init-doc": "*",
+				"nicolasdao/init-context": "*"
+			},
+			"type": "kit"
+		},
+		"nicolasdao/git-commit": {
+			"version": "1.0.1",
+			"ref": "refs/tags/v1.0.1",
+			"commit": "11bc3e4ba34109a39179a4c0330d07ef90ee1e0fb2f6784a461b37faed21213f",
+			"integrity": "sha256-d7e5a0e9afe9f2633e4e9ad64d8248fca0ee8e20a44f54586474bbfecc79d7e7",
+			"base_commit": "11bc3e4ba34109a39179a4c0330d07ef90ee1e0fb2f6784a461b37faed21213f",
+			"base_integrity": "sha256-d7e5a0e9afe9f2633e4e9ad64d8248fca0ee8e20a44f54586474bbfecc79d7e7",
+			"requested_by": [
+				"nicolasdao/_kit-dev-essentials"
+			],
+			"dependencies": {}
+		},
+		"nicolasdao/update-doc": {
+			"version": "1.2.0",
+			"ref": "refs/tags/v1.2.0",
+			"commit": "f7d9fdbf3b8f13e9a42735085a4d7e7358c33762b9fe6dc5ac5ef2a6afc4fbaf",
+			"integrity": "sha256-ec6b55ffa6ef5cced040567cbf1b0bbf6eef5ec2ddc77d50b7a9e9848b378896",
+			"base_commit": "f7d9fdbf3b8f13e9a42735085a4d7e7358c33762b9fe6dc5ac5ef2a6afc4fbaf",
+			"base_integrity": "sha256-ec6b55ffa6ef5cced040567cbf1b0bbf6eef5ec2ddc77d50b7a9e9848b378896",
+			"requested_by": [
+				"nicolasdao/_kit-dev-essentials"
+			],
+			"dependencies": {},
+			"type": "skill"
+		},
+		"nicolasdao/init-doc": {
+			"version": "0.3.0",
+			"ref": "refs/tags/v0.3.0",
+			"commit": "93ceef7f664e1d41b3e2d9ff15d5bf4c727ac60691566d972c66628f0a874a85",
+			"integrity": "sha256-e45bd6c9f37d0735c31d557c061bb6778556fab9047e863a16152b15047136ba",
+			"base_commit": "93ceef7f664e1d41b3e2d9ff15d5bf4c727ac60691566d972c66628f0a874a85",
+			"base_integrity": "sha256-e45bd6c9f37d0735c31d557c061bb6778556fab9047e863a16152b15047136ba",
+			"requested_by": [
+				"nicolasdao/_kit-dev-essentials"
+			],
+			"dependencies": {
+				"nicolasdao/init-mission": "*"
+			},
+			"type": "skill"
+		},
+		"nicolasdao/init-mission": {
+			"version": "0.2.0",
+			"ref": "refs/tags/v0.2.0",
+			"commit": "43c5a8fdbadba074b487a982da73590d47ec528aceb1a0490ba1d9ba05b49079",
+			"integrity": "sha256-3ae277c3b3ceb70865a8f468b861b5b36032abf9306e210e551c4713b70cdaa1",
+			"base_commit": "43c5a8fdbadba074b487a982da73590d47ec528aceb1a0490ba1d9ba05b49079",
+			"base_integrity": "sha256-3ae277c3b3ceb70865a8f468b861b5b36032abf9306e210e551c4713b70cdaa1",
+			"requested_by": [
+				"nicolasdao/_kit-dev-essentials"
+			],
+			"dependencies": {},
+			"type": "skill"
+		},
+		"nicolasdao/init-context": {
+			"version": "1.0.2",
+			"ref": "refs/tags/v1.0.2",
+			"commit": "69b3a1fb61181984baa6b0b7948ff007d9c0e25a82a6967f2bcf281fff4f1acb",
+			"integrity": "sha256-e61dd715dbe574124b9d68828a5725b2220c9f6196ce8dd0bb983fe2f52eca41",
+			"base_commit": "69b3a1fb61181984baa6b0b7948ff007d9c0e25a82a6967f2bcf281fff4f1acb",
+			"base_integrity": "sha256-e61dd715dbe574124b9d68828a5725b2220c9f6196ce8dd0bb983fe2f52eca41",
+			"requested_by": [
+				"nicolasdao/_kit-dev-essentials"
+			],
+			"dependencies": {}
+		}
+	}
+}
