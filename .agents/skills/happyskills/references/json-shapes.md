@@ -115,12 +115,15 @@ Or if not logged in:
 ```json
 {
   "data": {
-    "results": [{ "skill": "owner/name", "installed": "1.0.0", "latest": "1.1.0", "status": "up-to-date|outdated|unknown|error" }],
+    "results": [{ "skill": "owner/name", "installed": "1.0.0", "latest": "1.1.0", "status": "up-to-date|outdated|conflicts|no-access|unknown|error", "via": "parent/skill-or-kit"|null }],
     "outdated_count": 2,
-    "up_to_date_count": 3
+    "up_to_date_count": 3,
+    "conflicts_count": 0
   }
 }
 ```
+
+- `via`: `null` for directly installed skills, or the name of the parent skill/kit that pulled this in as a dependency. All installed skills are checked — not just root-level ones.
 
 ## status
 
@@ -215,12 +218,14 @@ Or if not logged in:
 ```json
 {
   "data": {
-    "updated": [{ "skill": "owner/name", "from": "1.0.0", "to": "1.1.0" }],
-    "already_up_to_date": [{ "skill": "owner/name", "version": "1.0.0" }],
+    "updated": [{ "skill": "owner/name", "from": "1.0.0", "to": "1.1.0", "via": "parent/skill-or-kit"|null }],
+    "already_up_to_date": [{ "skill": "owner/name", "version": "1.0.0", "via": "parent/skill-or-kit"|null }],
     "count": 1
   }
 }
 ```
+
+- `via`: `null` for directly installed skills, or the name of the parent skill/kit. `update --all` updates all installed skills — not just root-level ones.
 
 ## init
 

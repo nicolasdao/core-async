@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.24.2] - 2026-04-07
+
+### Changed
+- Update `check` and `update` JSON response shapes with new `via` field showing dependency provenance (`null` for direct installs, parent skill/kit name for dependencies)
+- Update `check` JSON shape with `conflicts_count` field and full status enum (`up-to-date|outdated|conflicts|no-access|unknown|error`)
+
 ## [1.24.0] - 2026-04-06
 
 ### Added

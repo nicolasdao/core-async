@@ -1,13 +1,13 @@
 {
 	"lockVersion": 2,
-	"generatedAt": "2026-04-07T05:03:05.913Z",
+	"generatedAt": "2026-04-07T07:15:09.966Z",
 	"skills": {
 		"happyskillsai/happyskills": {
-			"version": "1.24.0",
-			"ref": "refs/tags/v1.24.0",
-			"commit": "c6736f852a6be2e124862f770013f787ab499951b359107a4fc6de40fca0ca11",
+			"version": "1.24.2",
+			"ref": "refs/tags/v1.24.2",
+			"commit": "c3a20458e90edbcf33a6d17d76f6e71f3a6672349999f1e3eeff2d20cea6fe06",
 			"integrity": "sha256-d2f1ee4b104132d262994d0a4c9ae9aebaed4370dd931462aa7689548f620a58",
-			"base_commit": "c6736f852a6be2e124862f770013f787ab499951b359107a4fc6de40fca0ca11",
+			"base_commit": "c3a20458e90edbcf33a6d17d76f6e71f3a6672349999f1e3eeff2d20cea6fe06",
 			"base_integrity": "sha256-d2f1ee4b104132d262994d0a4c9ae9aebaed4370dd931462aa7689548f620a58",
 			"requested_by": [
 				"__root__"

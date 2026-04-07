@@ -1,6 +1,6 @@
 {
 	"name": "happyskills",
-	"version": "1.24.0",
+	"version": "1.24.2",
 	"type": "skill",
 	"description": "HappySkills CLI package manager. Install, update, search, publish, fork AI agent skills. Manage your happy skills inventory. Design and review Claude Code skills.",
 	"keywords": [
