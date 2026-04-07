@@ -8,8 +8,7 @@
 
 const { assert } = require('chai')
 const co = require('co')
-const { Channel, utils: { timeout } } = require('../src')
-const { promise: { delay } } = require('../src/utils')
+const { Channel, utils: { timeout }, delay } = require('../dist/index.cjs')
 
 const _ignoreError = () => null
 

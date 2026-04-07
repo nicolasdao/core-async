@@ -1,25 +1,19 @@
-const { promise:{ delay } } = require('./utils')
+import { delay } from './utils/promise.js'
 
 const TIMEOUT = '__timeout'
 
-const _getSetImmediate = () => {
-	try {
-		return setImmediate
-	} catch(err) {
-		return (() => fn => setTimeout(fn,0))(err)
-	}
-}
+const schedule = typeof setImmediate === 'function'
+	? setImmediate
+	: (fn) => setTimeout(fn, 0)
 
-const _setImmediate = _getSetImmediate()
-
-const put = (chan,brick,options) => {
+const put = (chan, brick, options) => {
 	const { timeout:t } = options || {}
-	let seq 
-	const p = new Promise(resolve => seq = chan.push(brick,v => _setImmediate(() => resolve(v))))
+	let seq
+	const p = new Promise(resolve => seq = chan.push(brick, v => schedule(() => resolve(v))))
 	if (t > 0)
-		return Promise.race([delay(t).then(() => TIMEOUT),p]).then(v => {
+		return Promise.race([delay(t).then(() => TIMEOUT), p]).then(v => {
 			if (v != TIMEOUT)
-				return
+				return v
 			chan.cancelPush(seq)
 			let err = new Error(`'put' timed out after ${t} ms. No data was added to the channel.`)
 			err.code = 408
@@ -29,23 +23,23 @@ const put = (chan,brick,options) => {
 		return p
 }
 
-const sput = (chan,brick) => {
+const sput = (chan, brick) => {
 	if (chan.getOldestPullRequest()) {
 		chan.push(brick)
-		return true 
+		return true
 	}
 
 	return false
 }
 
-const take = (chan,options) => {
+const take = (chan, options) => {
 	const { timeout:t } = options || {}
-	let seq 
-	const p = new Promise(resolve => seq = chan.pull(brick => _setImmediate(() => resolve(brick))))
+	let seq
+	const p = new Promise(resolve => seq = chan.pull(brick => schedule(() => resolve(brick))))
 	if (t > 0)
-		return Promise.race([delay(t).then(() => TIMEOUT),p]).then(v => {
+		return Promise.race([delay(t).then(() => TIMEOUT), p]).then(v => {
 			if (v != TIMEOUT)
-				return
+				return v
 			chan.cancelPull(seq)
 			let err = new Error(`'take' timed out after ${t} ms. No data was taken off the channel.`)
 			err.code = 408
@@ -59,13 +53,13 @@ const stake = chan => {
 	if (chan.getOldestPushRequest()) {
 		let brick
 		chan.pull(b => brick = b)
-		return brick 
+		return brick
 	}
 
 	return false
 }
 
-module.exports = {
+export {
 	put,
 	take,
 	sput,

@@ -8,8 +8,7 @@
 
 const { assert } = require('chai')
 const co = require('co')
-const { Channel, utils:{ PubSub, subscribe, throttle, timeout, alts, merge } } = require('../src')
-const { promise: { delay } } = require('../src/utils')
+const { Channel, utils:{ PubSub, subscribe, throttle, timeout, alts, merge }, delay } = require('../dist/index.cjs')
 
 describe('utils', () => {
 	describe('PubSub', () => {

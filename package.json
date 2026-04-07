@@ -1,9 +1,26 @@
 {
   "name": "core-async",
-  "version": "2.0.6",
-  "description": "JS implementation of the Clojure core.async library. Designed to be used with the npm package 'co'.",
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "version": "3.0.0",
+  "description": "A standalone, zero-dependency JavaScript CSP (Communicating Sequential Processes) library. Channels, transducers, pub/sub, throttle, alts, and more. Works with async/await.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/nicolasdao/core-async.git"
@@ -13,21 +30,25 @@
   },
   "homepage": "https://github.com/nicolasdao/core-async#readme",
   "scripts": {
+    "build": "tsup && cp src/index.d.ts dist/index.d.ts && cp src/index.d.ts dist/index.d.cts",
     "lint": "eslint src/ test/ --fix",
     "push": "git push --follow-tags origin master && npm publish",
     "rls": "standard-version --release-as",
-    "test": "mocha --exit",
+    "test": "npm run build && mocha --exit 'test/*.cjs' 'test/*.mjs'",
     "v": "node -e \"console.log(require('./package.json').version)\""
   },
   "author": "Nicolas Dao",
   "license": "BSD-3-Clause",
-  "devDependencies": {
-    "chai": "^4.3.4",
-    "eslint": "^8.0.0",
-    "mocha": "^9.1.2",
-    "standard-version": "^9.3.1"
+  "engines": {
+    "node": ">=16"
   },
-  "dependencies": {
-    "co": "^4.6.0"
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "co": "^4.6.0",
+    "eslint": "^8.0.0",
+    "mocha": "^10.2.0",
+    "standard-version": "^9.3.1",
+    "tsup": "^8.0.0",
+    "typescript": "^6.0.2"
   }
 }

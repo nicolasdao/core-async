@@ -1,5 +1,7 @@
 # API Reference
 
+> **v3.0.0 Import Style:** All public APIs are now available as direct named exports using ESM `import` syntax. CommonJS `require` is still supported but ESM is the recommended style. The nested `transducer.*` and `utils.*` namespaces have been flattened — you can now `import { filter, map, PubSub, alts }` directly from `'core-async'`.
+
 ## Table of Contents
 - [Channel](#channel)
   - [Constructor Signatures](#constructor-signatures)
@@ -20,22 +22,23 @@
   - [alts(channels)](#altschannels)
   - [merge(channels)](#mergechannels)
   - [timeout(time)](#timeouttime)
+  - [delay(ms)](#delayms)
   - [subscribe(channel, subscribers)](#subscribechannel-subscribers)
   - [PubSub](#pubsub)
     - [pubSub.pub(topics, value)](#pubsubpubtopics-value)
     - [pubSub.sub(topics, subscriber)](#pubsubsubtopics-subscriber)
     - [pubSub.unsub(topics, subscriber)](#pubsubunsubtopics-subscriber)
+    - [pubSub.close()](#pubsubclose)
   - [throttle(tasks, buffer)](#throttletasks-buffer)
-- [co](#co)
 
 ## Channel
 
-The `Channel` is the core primitive in core-async. It provides a communication mechanism between concurrent processes (generator functions running inside `co`). A process can **put** data onto a channel and another process can **take** data off it. When no matching counterpart is ready, the operation blocks (yields) until one becomes available.
+The `Channel` is the core primitive in core-async. It provides a communication mechanism between concurrent processes. A process can **put** data onto a channel and another process can **take** data off it. When no matching counterpart is ready, the operation blocks (awaits) until one becomes available.
 
 ### Constructor Signatures
 
 ```js
-const { Channel } = require('core-async')
+import { Channel } from 'core-async'
 
 // Unbuffered channel
 const chan = new Channel()
@@ -75,20 +78,20 @@ An **unbuffered** channel (buffer = 0) blocks every `put` until a corresponding 
 A **buffered** channel allows up to `buffer` puts to complete immediately without a waiting taker. Once the buffer is full, subsequent puts block until a take frees a slot.
 
 ```js
-const { co, Channel } = require('core-async')
+import { Channel } from 'core-async'
 
 const bufferedChan = new Channel(2)
 const unbufferedChan = new Channel()
 
-co(function *() {
-  yield bufferedChan.put(1) // Completes immediately (buffer slot 1)
-  yield bufferedChan.put(2) // Completes immediately (buffer slot 2)
-  yield bufferedChan.put(3) // Blocks until a take frees a slot
-})
+;(async () => {
+  await bufferedChan.put(1) // Completes immediately (buffer slot 1)
+  await bufferedChan.put(2) // Completes immediately (buffer slot 2)
+  await bufferedChan.put(3) // Blocks until a take frees a slot
+})()
 
-co(function *() {
-  yield unbufferedChan.put(1) // Blocks until a taker is ready
-})
+;(async () => {
+  await unbufferedChan.put(1) // Blocks until a taker is ready
+})()
 ```
 
 ### Dropping and Sliding Modes
@@ -100,34 +103,34 @@ Both modes require a buffer size >= 1.
 **Sliding mode** (`mode: 'sliding'`): When the buffer is full, the **oldest** buffered value is discarded to make room for the new one. The `put` resolves immediately with `true`.
 
 ```js
-const { co, Channel } = require('core-async')
+import { Channel } from 'core-async'
 
 const droppingChan = new Channel(1, { mode: 'dropping' })
 const slidingChan = new Channel(1, { mode: 'sliding' })
 
 // Dropping: 'baby' and 'world!' are dropped because the buffer is full
-co(function *() {
-  const p1 = yield droppingChan.put('hello')  // true  (fills buffer)
-  const p2 = yield droppingChan.put('baby')   // null  (dropped)
-  const p3 = yield droppingChan.put('world!') // null  (dropped)
-})
+;(async () => {
+  const p1 = await droppingChan.put('hello')  // true  (fills buffer)
+  const p2 = await droppingChan.put('baby')   // null  (dropped)
+  const p3 = await droppingChan.put('world!') // null  (dropped)
+})()
 
 // Only 'hello' can be taken
-co(function *() {
-  const val = yield droppingChan.take() // 'hello'
-})
+;(async () => {
+  const val = await droppingChan.take() // 'hello'
+})()
 
 // Sliding: each new put evicts the oldest
-co(function *() {
-  const p1 = yield slidingChan.put('hello')  // true (fills buffer)
-  const p2 = yield slidingChan.put('baby')   // true (evicts 'hello')
-  const p3 = yield slidingChan.put('world!') // true (evicts 'baby')
-})
+;(async () => {
+  const p1 = await slidingChan.put('hello')  // true (fills buffer)
+  const p2 = await slidingChan.put('baby')   // true (evicts 'hello')
+  const p3 = await slidingChan.put('world!') // true (evicts 'baby')
+})()
 
 // Only 'world!' (the most recent) can be taken
-co(function *() {
-  const val = yield slidingChan.take() // 'world!'
-})
+;(async () => {
+  const val = await slidingChan.take() // 'world!'
+})()
 ```
 
 ### Channel.put(brick, options)
@@ -146,17 +149,17 @@ Asynchronously puts a value ("brick") onto the channel. Returns a `Promise<Boole
 | `timeout` | `Number` | Milliseconds. If the put is not consumed within this time, the promise rejects with a timeout error (code `408`). |
 
 ```js
-co(function *() {
-  const status = yield chan.put('hello')
+;(async () => {
+  const status = await chan.put('hello')
 
   // With timeout — throws if not consumed within 5000ms
   try {
-    yield chan.put('hello', { timeout: 5000 })
+    await chan.put('hello', { timeout: 5000 })
   } catch (err) {
     console.log(err.message) // "'put' timed out after 5000 ms. No data was added to the channel."
     console.log(err.code)    // 408
   }
-})
+})()
 ```
 
 ### Channel.take(options)
@@ -173,17 +176,17 @@ Asynchronously takes a value from the channel. Returns a `Promise<Object>`.
 | `timeout` | `Number` | Milliseconds. If no value is available within this time, the promise rejects with a timeout error (code `408`). |
 
 ```js
-co(function *() {
-  const value = yield chan.take()
+;(async () => {
+  const value = await chan.take()
 
   // With timeout — throws if nothing available within 3000ms
   try {
-    const value = yield chan.take({ timeout: 3000 })
+    const value = await chan.take({ timeout: 3000 })
   } catch (err) {
     console.log(err.message) // "'take' timed out after 3000 ms. No data was taken off the channel."
     console.log(err.code)    // 408
   }
-})
+})()
 ```
 
 ### Channel.sput(brick)
@@ -234,17 +237,17 @@ Closes the channel. After closing:
 
 The `options.onClosing` callback (if provided at construction) is invoked when `close()` is called.
 
-You can also close a channel by putting `null`: `yield chan.put(null)`.
+You can also close a channel by putting `null`: `await chan.put(null)`.
 
 ```js
 const chan = new Channel()
 
 chan.close()
 
-co(function *() {
-  const putResult = yield chan.put('hello') // null (channel closed)
-  const takeResult = yield chan.take()      // null (channel closed)
-})
+;(async () => {
+  const putResult = await chan.put('hello') // null (channel closed)
+  const takeResult = await chan.take()      // null (channel closed)
+})()
 ```
 
 ### Channel State Properties
@@ -264,7 +267,7 @@ Transducers support both synchronous functions and functions that return Promise
 Import transducers from:
 
 ```js
-const { transducer: { filter, map, reduce, compose } } = require('core-async')
+import { filter, map, reduce, compose } from 'core-async'
 ```
 
 ### filter(predicate)
@@ -278,20 +281,20 @@ Creates a transducer that only allows values matching the predicate through the 
 - The predicate can return a `Promise<Boolean>`.
 
 ```js
-const { co, Channel, transducer: { filter } } = require('core-async')
+import { Channel, filter } from 'core-async'
 
 const chan = new Channel(filter(x => x > 1))
 
-co(function *() {
-  const s1 = yield chan.put(1) // false (filtered out)
-  const s2 = yield chan.put(2) // true  (accepted)
-  const s3 = yield chan.put(3) // true  (accepted)
-})
+;(async () => {
+  const s1 = await chan.put(1) // false (filtered out)
+  const s2 = await chan.put(2) // true  (accepted)
+  const s3 = await chan.put(3) // true  (accepted)
+})()
 
-co(function *() {
-  const a = yield chan.take() // 2
-  const b = yield chan.take() // 3
-})
+;(async () => {
+  const a = await chan.take() // 2
+  const b = await chan.take() // 3
+})()
 ```
 
 ### map(transform)
@@ -303,19 +306,19 @@ Creates a transducer that transforms each value before it enters the channel.
 - The transform function can return a `Promise`.
 
 ```js
-const { co, Channel, transducer: { map } } = require('core-async')
+import { Channel, map } from 'core-async'
 
 const chan = new Channel(map(x => x * 10))
 
-co(function *() {
-  yield chan.put(1)
-  yield chan.put(2)
-})
+;(async () => {
+  await chan.put(1)
+  await chan.put(2)
+})()
 
-co(function *() {
-  const a = yield chan.take() // 10
-  const b = yield chan.take() // 20
-})
+;(async () => {
+  const a = await chan.take() // 10
+  const b = await chan.take() // 20
+})()
 ```
 
 ### reduce(reduceFn, accumulator)
@@ -327,21 +330,21 @@ Creates a transducer that accumulates values using a reducer function. Each put 
 - The reduce function can return a `Promise`.
 
 ```js
-const { co, Channel, transducer: { reduce } } = require('core-async')
+import { Channel, reduce } from 'core-async'
 
 const chan = new Channel(reduce((acc, x, idx) => ({ total: acc.total + x, idx }), { total: 0 }))
 
-co(function *() {
-  yield chan.put(1)
-  yield chan.put(2)
-  yield chan.put(3)
-})
+;(async () => {
+  await chan.put(1)
+  await chan.put(2)
+  await chan.put(3)
+})()
 
-co(function *() {
-  const a = yield chan.take() // { total: 1, idx: 0 }
-  const b = yield chan.take() // { total: 3, idx: 1 }
-  const c = yield chan.take() // { total: 6, idx: 2 }
-})
+;(async () => {
+  const a = await chan.take() // { total: 1, idx: 0 }
+  const b = await chan.take() // { total: 3, idx: 1 }
+  const c = await chan.take() // { total: 6, idx: 2 }
+})()
 ```
 
 ### compose(...transducers)
@@ -351,7 +354,7 @@ Composes multiple transducers into a single transducer. Transducers execute left
 **Signature:** `compose(...transducers: Transducer[]) => Transducer`
 
 ```js
-const { co, Channel, transducer: { compose, filter, map } } = require('core-async')
+import { Channel, compose, filter, map } from 'core-async'
 
 const chan = new Channel(compose(
   filter(x => x > 1),   // Only values > 1
@@ -359,23 +362,23 @@ const chan = new Channel(compose(
   filter(x => x < 13)   // Only values < 13
 ))
 
-co(function *() {
-  yield chan.put(1) // Rejected by first filter
-  yield chan.put(2) // Passes: 2 -> 12 -> accepted (12 < 13)
-  yield chan.put(3) // Rejected by last filter: 3 -> 13 -> rejected (13 not < 13)
-})
+;(async () => {
+  await chan.put(1) // Rejected by first filter
+  await chan.put(2) // Passes: 2 -> 12 -> accepted (12 < 13)
+  await chan.put(3) // Rejected by last filter: 3 -> 13 -> rejected (13 not < 13)
+})()
 
-co(function *() {
-  const a = yield chan.take() // 12
-})
+;(async () => {
+  const a = await chan.take() // 12
+})()
 ```
 
 ## Utilities
 
-Utilities are accessed via `require('core-async').utils`:
+Utilities are available as direct named exports:
 
 ```js
-const { utils: { PubSub, subscribe, merge, throttle, timeout, alts } } = require('core-async')
+import { PubSub, subscribe, merge, throttle, timeout, delay, alts } from 'core-async'
 ```
 
 ### alts(channels)
@@ -387,19 +390,19 @@ Waits for the first value to become available on any of the given channels, then
 When multiple channels have values ready simultaneously, `alts` takes from the one whose value was put first (by sequence number).
 
 ```js
-const { co, Channel, utils: { alts } } = require('core-async')
+import { Channel, alts } from 'core-async'
 
 const chan1 = new Channel()
 const chan2 = new Channel()
 
-co(function *() {
-  const [value, winnerChan] = yield alts([chan1, chan2])
+;(async () => {
+  const [value, winnerChan] = await alts([chan1, chan2])
 
   if (winnerChan === chan1)
     console.log(`chan1 won with: ${value}`)
   else
     console.log(`chan2 won with: ${value}`)
-})
+})()
 
 chan1.put('hello')
 chan2.put('world')
@@ -415,7 +418,7 @@ Merges multiple channels into a single output channel. Values from all input cha
 **Signature:** `merge(channels: Channel[]) => Channel`
 
 ```js
-const { co, Channel, utils: { merge } } = require('core-async')
+import { Channel, merge } from 'core-async'
 
 const chan1 = new Channel()
 const chan2 = new Channel()
@@ -427,12 +430,12 @@ chan2.put('one')
 chan1.put(2)
 chan2.put('two')
 
-co(function *() {
-  console.log(yield merged.take()) // 1
-  console.log(yield merged.take()) // 'one'
-  console.log(yield merged.take()) // 2
-  console.log(yield merged.take()) // 'two'
-})
+;(async () => {
+  console.log(await merged.take()) // 1
+  console.log(await merged.take()) // 'one'
+  console.log(await merged.take()) // 2
+  console.log(await merged.take()) // 'two'
+})()
 ```
 
 ### timeout(time)
@@ -445,14 +448,30 @@ Creates an unbuffered channel that receives the string `'timeout'` after the spe
 - If `time` is a two-element array `[min, max]`, the timeout fires after a random duration between `min` and `max` milliseconds.
 
 ```js
-const { co, utils: { timeout } } = require('core-async')
+import { timeout } from 'core-async'
 
-co(function *() {
+;(async () => {
   const t = timeout(5000)
   console.log('Waiting 5 seconds...')
-  yield t.take()
+  await t.take()
   console.log('Done!')
-})
+})()
+```
+
+### delay(ms)
+
+Returns a `Promise` that resolves after the specified number of milliseconds. A simple utility for introducing pauses in async code.
+
+**Signature:** `delay(ms: Number) => Promise<void>`
+
+```js
+import { delay } from 'core-async'
+
+;(async () => {
+  console.log('Starting...')
+  await delay(2000)
+  console.log('2 seconds later!')
+})()
 ```
 
 ### subscribe(channel, subscribers)
@@ -466,7 +485,7 @@ Closing the source channel (by putting `null`) stops the subscription loop.
 **Subscriber object:** `{ chan: Channel, rule: (data) => Boolean }`
 
 ```js
-const { co, Channel, utils: { subscribe } } = require('core-async')
+import { Channel, subscribe } from 'core-async'
 
 const source = new Channel()
 const numbers = new Channel()
@@ -477,19 +496,19 @@ subscribe(source, [
   { chan: strings, rule: data => typeof data === 'string' }
 ])
 
-co(function *() {
+;(async () => {
   while (true) {
-    const n = yield numbers.take()
+    const n = await numbers.take()
     console.log(`Number: ${n}`)
   }
-})
+})()
 
-co(function *() {
+;(async () => {
   while (true) {
-    const s = yield strings.take()
+    const s = await strings.take()
     console.log(`String: ${s}`)
   }
-})
+})()
 
 ;[1, 'one', 2, 'two', 3, 'three'].forEach(v => source.put(v))
 // Output:
@@ -508,7 +527,7 @@ A topic-based publish/subscribe system built on channels. Publishers send values
 **Constructor:** `new PubSub()`
 
 ```js
-const { Channel, utils: { PubSub } } = require('core-async')
+import { Channel, PubSub } from 'core-async'
 
 const pubSub = new PubSub()
 ```
@@ -547,10 +566,25 @@ pubSub.unsub('numbers', numberChan)
 pubSub.unsub(['numbers', 'letters'], anotherChan)
 ```
 
+#### pubSub.close()
+
+Closes the PubSub instance and all channels associated with its internal subscriptions. After calling `close()`, no further messages will be delivered to subscribers, and any pending operations on subscriber channels will be resolved.
+
+**Signature:** `close() => void`
+
+```js
+const pubSub = new PubSub()
+
+// ... set up subscriptions and publish messages ...
+
+// Clean up when done
+pubSub.close()
+```
+
 **Full PubSub example:**
 
 ```js
-const { co, Channel, utils: { PubSub } } = require('core-async')
+import { Channel, PubSub } from 'core-async'
 
 const pubSub = new PubSub()
 
@@ -560,19 +594,19 @@ const letterSub = new Channel()
 pubSub.sub('number', numberSub)
 pubSub.sub('letter', letterSub)
 
-co(function *() {
+;(async () => {
   while (true) {
-    const data = yield numberSub.take()
+    const data = await numberSub.take()
     console.log(`Number: ${data}`)
   }
-})
+})()
 
-co(function *() {
+;(async () => {
   while (true) {
-    const data = yield letterSub.take()
+    const data = await letterSub.take()
     console.log(`Letter: ${data}`)
   }
-})
+})()
 
 pubSub.pub('number', 1)
 pubSub.pub('letter', 'A')
@@ -596,9 +630,7 @@ Executes an array of async tasks with a concurrency limit. Returns a promise tha
 - If a task throws, its result is `{ error: <Error> }` instead of propagating the failure.
 
 ```js
-const { utils: { throttle } } = require('core-async')
-
-const delay = t => new Promise(resolve => setTimeout(resolve, t))
+import { throttle, delay } from 'core-async'
 
 const tasks = Array.from({ length: 100 }, (_, i) =>
   () => delay(Math.random() * 1000).then(() => `Task ${i} done`)
@@ -609,20 +641,3 @@ throttle(tasks, 10).then(results => {
   console.log(results) // ['Task 0 done', 'Task 1 done', ..., 'Task 99 done']
 })
 ```
-
-## co
-
-The `co` library is re-exported from core-async for convenience. It turns generator functions into asynchronous routines, where `yield` pauses execution until the yielded promise resolves.
-
-```js
-const { co } = require('core-async')
-
-co(function *() {
-  const result = yield somePromise()
-  console.log(result)
-})
-```
-
-`co` is essential for using `put` and `take` in a blocking style. Without `co`, you must use the promise-based API directly.
-
-See the [co npm package](https://www.npmjs.com/package/co) for full documentation.

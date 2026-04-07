@@ -1,10 +1,10 @@
 /**
  * Copyright (c) 2017-2019, Neap Pty Ltd.
  * All rights reserved.
- * 
+ *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
-*/
+ */
 
 const throwIfUndefined = (value, valueName) => {
 	if (value === undefined)
@@ -25,7 +25,6 @@ const throwIfNotNumber = (value, valueName) => {
 	return value
 }
 
-// e.g., throwIfWrongValue(type, 'type', ['YEAR', 'MONTH'])
 const throwIfWrongValue = (value, valueName, validValues) => {
 	if (!value)
 		throw new Error('Failed to test value against a list of valid value. No value was passed.')
@@ -62,7 +61,6 @@ const throwIfNoMatch = (value, valueName, regex) => {
 		throw new Error(`Value for variable '${valueName}' is invalid. It does not match regex ${regex}.`)
 }
 
-// e.g., throwIfGreaterThan(startDate, endDate, 'startDate', 'endDate')
 const throwIfGreaterThan = (value1, value2, valueName1, valueName2) => {
 	if (!value1)
 		throw new Error('Failed to compare value1 with value2. No value1 was passed.')
@@ -80,7 +78,7 @@ const throwIfGreaterThan = (value1, value2, valueName1, valueName2) => {
 	}
 }
 
-module.exports = {
+export {
 	throwIfUndefined,
 	throwIfNotTruthy,
 	throwIfNotNumber,
@@ -88,4 +86,3 @@ module.exports = {
 	throwIfNoMatch,
 	throwIfGreaterThan
 }
-

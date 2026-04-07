@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/nicolasdao/core-async/compare/v2.0.6...v3.0.0) (2026-04-07)
+
+### ⚠ BREAKING CHANGES
+
+* **esm:** Package is now ESM-first (`"type": "module"`). CommonJS still works via `require('core-async')` through the `exports` map.
+* **co:** `co` is no longer bundled or re-exported. Use native `async/await` instead. Install `co` separately if needed.
+* **node:** Minimum Node.js version is now 16.
+* **channel:** `Channel` is now an ES class — calling `Channel()` without `new` throws a TypeError.
+
+### Features
+
+* **esm:** Dual ESM + CJS package with `exports` map and conditional resolution ([package.json](./package.json))
+* **types:** Ship TypeScript type definitions (`.d.ts`) — no `@types` package needed ([src/index.d.ts](./src/index.d.ts))
+* **zero-deps:** Remove `co` from runtime dependencies — zero runtime dependencies
+* **exports:** Flat named exports for all APIs (`import { Channel, alts, map } from 'core-async'`) alongside backward-compat `utils`/`transducer` namespaces
+* **delay:** `delay` utility now exported at top level
+* **pubsub:** `PubSub.close()` method to stop internal event loop and prevent memory leaks
+* **ring-buffer:** Internal RingBuffer data structure for O(1) channel queue operations ([src/ring-buffer.js](./src/ring-buffer.js))
+* **tests:** 56 new unit tests (29 → 85) covering bug fix regressions, RingBuffer, edge cases, async/await patterns, and ESM imports
+
+### Bug Fixes
+
+* **fn:** `put`/`take` with timeout now returns the correct value on success instead of `undefined` ([src/fn.js](./src/fn.js))
+* **channel:** Fix `typeof(number)` typo in constructor error message — now correctly shows `typeof(buffer)` ([src/channel.js](./src/channel.js))
+* **channel:** Sequence counters (`#pushCounter`/`#pullCounter`) are now instance-scoped instead of global across all Channel instances ([src/channel.js](./src/channel.js))
+* **tools:** `alts` race condition fixed — falls back to next candidate or retries if winner value was consumed between detection and take ([src/tools.js](./src/tools.js))
+* **channel:** Listener cleanup uses `.length = 0` instead of unnecessary null/reassign pattern ([src/channel.js](./src/channel.js))
+* **channel:** Request queues auto-clean cancelled entries via RingBuffer instead of accumulating unboundedly ([src/channel.js](./src/channel.js))
+* **tools:** PubSub internal channel leak fixed — `close()` stops the async loop ([src/tools.js](./src/tools.js))
+
+### Performance
+
+* RingBuffer with O(1) enqueue/dequeue replaces O(n) array `find()`/`splice()` for push/pull request queues
+* ES classes for V8 hidden class optimization
+* Removed generator/coroutine overhead — native `async/await` throughout
+
 ### [2.0.6](https://github.com/nicolasdao/core-async/compare/v2.0.5...v2.0.6) (2022-01-30)
 
 

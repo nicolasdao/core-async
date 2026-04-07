@@ -9,7 +9,7 @@
 const { assert } = require('chai')
 const co = require('co')
 
-const { Channel, transducer:{ compose, map, filter, reduce } } = require('../src')
+const { Channel, transducer:{ compose, map, filter, reduce } } = require('../dist/index.cjs')
 
 describe('transducer', () => {
 	describe('#map', () => {

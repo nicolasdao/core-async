@@ -1,10 +1,13 @@
 /**
  * Copyright (c) 2017-2019, Neap Pty Ltd.
  * All rights reserved.
- * 
+ *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
-*/
+ */
+
+import * as error from './error.js'
+import * as promise from './promise.js'
 
 const _objectSortBy = (obj, fn = x => x, dir='asc') => Object.keys(obj || {})
 	.map(key => ({ key, value: obj[key] }))
@@ -53,10 +56,10 @@ const _arraySortBy = (arr, fn = x => x, dir='asc') => (arr || []).sort((a,b) => 
 
 const sortBy = (obj, fn = x => x, dir='asc') => Array.isArray(obj) ? _arraySortBy(obj, fn, dir) : _objectSortBy(obj, fn, dir)
 
-module.exports = {
-	collection: {
-		sortBy
-	},
-	error: require('./error'),
-	promise: require('./promise')
+const collection = { sortBy }
+
+export {
+	collection,
+	error,
+	promise
 }

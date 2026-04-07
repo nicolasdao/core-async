@@ -2,39 +2,174 @@
 
 [![NPM](https://img.shields.io/npm/v/core-async.svg?style=flat)](https://www.npmjs.com/package/core-async) [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-A JavaScript implementation of CSP (Communicating Sequential Processes) inspired by Clojure's core.async. Uses Channels to synchronize concurrent processes, with composable transducers for stream data transformation. Designed to be used with the `co` generator library (shipped with this package).
+A standalone, zero-dependency CSP (Communicating Sequential Processes) library for JavaScript. Coordinate concurrent async workflows through **channels** instead of tangled callbacks, event emitters, or complex promise chains. Works with native `async/await`. Ships as both **ESM** and **CommonJS**.
 
 ## Table of Contents
-- [Overview](#overview)
+
+- [Why CSP?](#why-csp)
+  - [What Is CSP?](#what-is-csp)
+  - [When to Use It](#when-to-use-it)
+  - [When Not to Use It](#when-not-to-use-it)
+- [Before and After](#before-and-after)
+  - [Concurrency Limiting](#concurrency-limiting)
+  - [Producer-Consumer Pipeline](#producer-consumer-pipeline)
+  - [Racing Multiple Sources With a Deadline](#racing-multiple-sources-with-a-deadline)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
-  - [Basic Usage](#basic-usage)
-- [Quick Example](#quick-example)
-- [Project Structure](#project-structure)
+  - [ESM (Recommended)](#esm-recommended)
+  - [CommonJS](#commonjs)
+  - [TypeScript](#typescript)
+- [Core Concepts](#core-concepts)
+  - [Channels](#channels)
+  - [Buffered Channels](#buffered-channels)
+  - [Transducers](#transducers)
+- [Real-World Patterns](#real-world-patterns)
+  - [Time-Bounded Operations](#time-bounded-operations)
+  - [Fan-In From Multiple Sources](#fan-in-from-multiple-sources)
+  - [Topic-Based Pub/Sub](#topic-based-pubsub)
+  - [Concurrent Task Throttling](#concurrent-task-throttling)
 - [Documentation](#documentation)
-- [Common Patterns](#common-patterns)
-  - [Dealing With Timeout](#dealing-with-timeout)
-  - [Chat Between Two Agents](#chat-between-two-agents)
-  - [Monitoring Stock Prices](#monitoring-stock-prices)
+- [Migrating from v2 to v3](#migrating-from-v2-to-v3)
 - [Testing](#testing)
 - [License](#license)
 
-## Overview
+## Why CSP?
 
-Core Async JS brings CSP concurrency patterns to JavaScript. Instead of callback hell or deeply nested promise chains, you write sequential-looking code using generator functions and channels:
+### What Is CSP?
 
-- **Channels** are the communication primitive. One process puts data onto a channel, another takes data off it. When no counterpart is ready, the operation blocks.
-- **Transducers** let you attach composable data transformations (filter, map, reduce) directly to channels.
-- **Utilities** provide higher-level patterns: pub/sub, channel merging, throttling, timeouts, and racing (`alts`).
+CSP is a concurrency model where independent processes communicate by passing messages through **channels** — typed pipes with blocking semantics. Instead of sharing mutable state or orchestrating callbacks, each process simply puts data on a channel and takes data off it. When no counterpart is ready, the operation waits.
 
-The library is lightweight (single dependency on `co`) and works in Node.js.
+This gives you:
+
+- **Sequential-looking code** for concurrent workflows — no callback pyramids, no `.then()` chains
+- **Backpressure for free** — a fast producer automatically slows down when the consumer can't keep up
+- **Decoupled components** — producers and consumers know nothing about each other, only the channel between them
+- **Deterministic coordination** — unlike event emitters, channels guarantee delivery order and provide clear shutdown semantics
+
+### When to Use It
+
+- **Producer/consumer pipelines** — one part of your system generates data, another processes it, at different speeds
+- **Coordinating concurrent workflows** — multiple async operations that need to synchronize (e.g., a worker pool, rate-limited API calls)
+- **Multiplexing** — racing multiple data sources and reacting to whichever responds first (e.g., data + timeout)
+- **Streaming transformations** — applying filter/map/reduce to an ongoing data flow, not just a static array
+- **Decoupled communication** — when you want pub/sub or routing without coupling components to each other
+
+### When Not to Use It
+
+- **Simple one-shot async** — if `await fetch(url)` does the job, you don't need a channel
+- **Static data transformations** — if you're mapping an in-memory array, use `Array.map()`, not a channel
+- **Event-driven UI** — DOM events with `addEventListener` are fine; channels add overhead without clear benefit
+- **Single request/response** — a straightforward API call doesn't need CSP coordination
+
+## Before and After
+
+### Concurrency Limiting
+
+Run 100 API calls, max 5 at a time.
+
+**Without core-async** (manual tracking):
+
+```js
+async function throttle(tasks, limit) {
+  const results = []
+  const executing = new Set()
+  for (const [i, task] of tasks.entries()) {
+    const p = task().then(r => { executing.delete(p); return r })
+    executing.add(p)
+    results[i] = p
+    if (executing.size >= limit) await Promise.race(executing)
+  }
+  return Promise.all(results)
+}
+```
+
+**With core-async** (one line):
+
+```js
+import { throttle } from 'core-async'
+
+const results = await throttle(tasks, 5)
+```
+
+### Producer-Consumer Pipeline
+
+A producer generates data; a consumer processes it. The producer must wait when the consumer falls behind.
+
+**Without core-async** (manual backpressure):
+
+```js
+let resolve
+let promise = new Promise(r => resolve = r)
+
+async function produce() {
+  for (const item of items) {
+    // Block until consumer signals readiness
+    await promise
+    currentItem = item
+    promise = new Promise(r => resolve = r)
+  }
+}
+
+async function consume() {
+  while (true) {
+    resolve() // Signal readiness
+    await new Promise(r => setTimeout(r, 0))
+    process(currentItem)
+  }
+}
+```
+
+**With core-async** (clear intent):
+
+```js
+import { Channel } from 'core-async'
+
+const chan = new Channel()
+
+// Producer — blocks automatically when consumer isn't ready
+async function produce() {
+  for (const item of items) {
+    await chan.put(item)
+  }
+  await chan.put(null) // Signal done
+}
+
+// Consumer — blocks automatically when no data available
+async function consume() {
+  let item = await chan.take()
+  while (item !== null) {
+    process(item)
+    item = await chan.take()
+  }
+}
+```
+
+### Racing Multiple Sources With a Deadline
+
+Wait for data from multiple sources, but give up after 3 seconds.
+
+**Without core-async** (fragile state management):
+
+```js
+let done = false
+const timer = setTimeout(() => { done = true; console.log('Timed out') }, 3000)
+
+source1.on('data', d => { if (!done) { done = true; clearTimeout(timer); handle(d) } })
+source2.on('data', d => { if (!done) { done = true; clearTimeout(timer); handle(d) } })
+```
+
+**With core-async** (declarative):
+
+```js
+import { Channel, alts, timeout } from 'core-async'
+
+const [value, winner] = await alts([source1Chan, source2Chan, timeout(3000)])
+
+if (winner === timeout) console.log('Timed out')
+else handle(value)
+```
 
 ## Getting Started
-
-### Prerequisites
-
-- Node.js
 
 ### Installation
 
@@ -42,196 +177,226 @@ The library is lightweight (single dependency on `co`) and works in Node.js.
 npm i core-async
 ```
 
-### Basic Usage
+### ESM (Recommended)
 
 ```js
-const { co, Channel } = require('core-async')
+import { Channel, alts, timeout, filter, map, PubSub, throttle } from 'core-async'
+```
+
+All APIs are available as direct named exports. No nested namespaces needed.
+
+### CommonJS
+
+```js
+const { Channel, utils: { alts, timeout }, transducer: { filter, map } } = require('core-async')
+```
+
+Both the flat named exports and the legacy nested namespaces (`utils`, `transducer`) work in CommonJS.
+
+### TypeScript
+
+Type definitions are included. No `@types` package needed.
+
+```ts
+import { Channel, alts, type PutOptions, type TakeOptions } from 'core-async'
+
+const chan = new Channel<string>()
+```
+
+## Core Concepts
+
+### Channels
+
+A channel is a communication pipe between two async processes. `put` sends a value; `take` receives it. Both block until a counterpart is ready.
+
+```js
+import { Channel } from 'core-async'
 
 const chan = new Channel()
 
-// Producer: puts values onto the channel
-co(function *() {
-  yield chan.put('hello')
-  yield chan.put('world')
-  yield chan.put(null) // closes the channel
-})
+// Process A
+;(async () => {
+  await chan.put('hello')   // Blocks until Process B takes
+  await chan.put('world')
+  await chan.put(null)      // Close the channel
+})()
 
-// Consumer: takes values from the channel
-co(function *() {
-  let value = yield chan.take()
-  while (value !== null) {
-    console.log(value)
-    value = yield chan.take()
-  }
-  console.log('Channel closed')
-})
-// Output:
-// hello
-// world
-// Channel closed
+// Process B
+;(async () => {
+  console.log(await chan.take()) // 'hello'
+  console.log(await chan.take()) // 'world'
+  console.log(await chan.take()) // null — channel closed
+})()
 ```
 
-## Quick Example
+For non-blocking operations, use `sput` (synchronous put) and `stake` (synchronous take) — they return immediately without waiting.
 
-Two concurrent processes communicating through channels. Process 1 generates random numbers and Process 2 filters for matches:
+### Buffered Channels
+
+By default, channels are unbuffered — every `put` blocks until a `take` is ready. A buffered channel allows N puts to complete without a waiting taker.
 
 ```js
-const { co, Channel } = require('core-async')
+const chan = new Channel(3) // Buffer size 3
 
-const inChan = new Channel()
-const outChan = new Channel()
-
-// Process 1: generates random numbers, checks for results
-co(function *() {
-  while (true) {
-    yield inChan.put(Math.random())
-    const msg = outChan.stake()
-    if (msg)
-      console.log(msg)
-  }
-})
-
-// Process 2: filters for values in a narrow range
-co(function *() {
-  while (true) {
-    const val = yield inChan.take()
-    if (val >= 0.250 && val <= 0.252)
-      yield outChan.put(`Winner: ${val}`)
-  }
-})
-
-console.log('Program has started.')
+await chan.put(1) // Completes immediately (buffered)
+await chan.put(2) // Completes immediately (buffered)
+await chan.put(3) // Completes immediately (buffered)
+await chan.put(4) // Blocks — buffer is full, waits for a take
 ```
 
-## Project Structure
+Special modes for when the buffer is full:
 
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `'default'` | `put` blocks until space opens | Backpressure |
+| `'dropping'` | New values silently dropped | Rate limiting — keep oldest |
+| `'sliding'` | Oldest value evicted | Real-time — keep latest |
+
+```js
+const latest = new Channel(1, { mode: 'sliding' })  // Always holds the most recent value
+const capped = new Channel(100, { mode: 'dropping' }) // Accept up to 100, drop overflow
 ```
-core-async/
-  src/
-    index.js          # Main entry point — re-exports all modules
-    channel.js        # Channel constructor (buffered, unbuffered, sliding, dropping)
-    fn.js             # Core put/take/sput/stake functions
-    transducer.js     # Composable transducers (compose, map, filter, reduce)
-    tools.js          # Utilities (PubSub, subscribe, merge, throttle, timeout, alts)
-    utils/
-      index.js        # Internal helpers (sortBy)
-      promise.js      # delay utility
-      error.js        # Argument validation helpers
-  test/
-    channel.js        # Channel tests
-    tools.js          # Utility tests (PubSub, subscribe, throttle, alts, merge, timeout)
-    transducer.js     # Transducer tests (map, filter, reduce, compose)
+
+### Transducers
+
+Attach composable transformations directly to a channel. Values pass through the transducer pipeline before reaching the consumer.
+
+```js
+import { Channel, compose, filter, map } from 'core-async'
+
+const chan = new Channel(compose(
+  filter(x => x > 0),        // Only positive numbers
+  map(x => x * 100)          // Scale up
+))
+
+await chan.put(-5)  // Rejected by filter → returns false
+await chan.put(3)   // Passes → consumer receives 300
+```
+
+## Real-World Patterns
+
+### Time-Bounded Operations
+
+Race a data channel against a deadline:
+
+```js
+import { Channel, alts, timeout } from 'core-async'
+
+const dataChan = new Channel()
+
+;(async () => {
+  const deadline = timeout(3000)
+  let active = true
+
+  while (active) {
+    const [value, chan] = await alts([dataChan, deadline])
+    if (chan === deadline) {
+      console.log('Deadline reached')
+      active = false
+    } else {
+      console.log(`Received: ${value}`)
+    }
+  }
+})()
+```
+
+### Fan-In From Multiple Sources
+
+Merge multiple channels into one stream:
+
+```js
+import { Channel, merge } from 'core-async'
+
+const sensorA = new Channel()
+const sensorB = new Channel()
+
+const allReadings = merge([sensorA, sensorB])
+
+;(async () => {
+  while (true) {
+    const reading = await allReadings.take()
+    console.log('Reading:', reading)
+  }
+})()
+```
+
+### Topic-Based Pub/Sub
+
+Decouple publishers and subscribers with named topics:
+
+```js
+import { Channel, PubSub } from 'core-async'
+
+const bus = new PubSub()
+
+const errors = new Channel()
+const metrics = new Channel()
+
+bus.sub('error', errors)
+bus.sub('metric', metrics)
+
+// Anywhere in your app
+bus.pub('error', { code: 500, msg: 'Internal error' })
+bus.pub('metric', { latency: 42 })
+
+// Clean up when done
+bus.close()
+```
+
+### Concurrent Task Throttling
+
+Execute async tasks with a concurrency limit, collecting all results:
+
+```js
+import { throttle } from 'core-async'
+
+const urls = ['https://api.example.com/1', /* ... 100 more ... */]
+const tasks = urls.map(url => () => fetch(url).then(r => r.json()))
+
+// Max 10 concurrent requests. Failed tasks return { error } instead of crashing.
+const results = await throttle(tasks, 10)
 ```
 
 ## Documentation
 
-- **[API Reference](./docs/api.md)** — Complete reference for all exported functions: Channel (constructor, put, take, sput, stake, close), transducers (filter, map, reduce, compose), and utilities (alts, merge, timeout, subscribe, PubSub, throttle, co).
+- **[API Reference](./docs/api.md)** — Complete reference for all exported functions: Channel (constructor, put, take, sput, stake, close), transducers (filter, map, reduce, compose), and utilities (alts, merge, timeout, delay, subscribe, PubSub, throttle). Includes all constructor overloads, return values, options, and code examples.
 - **[Gotchas](./docs/gotchas.md)** — Non-obvious behavior and pitfalls: putting null closes the channel, sput/stake semantics, sliding vs dropping modes, event loop implications, timeout patterns, and more.
 
-## Common Patterns
+## Migrating from v2 to v3
 
-### Dealing With Timeout
+### Breaking Changes
 
-Combine `alts` with `timeout` to create time-bounded operations:
+1. **`co` is no longer bundled.** Use native `async/await` instead. If you need `co`, install it separately.
+2. **ESM is the primary format.** CommonJS still works via `require('core-async')`.
+3. **`PubSub` now has a `close()` method.** Call it to prevent memory leaks.
+4. **Node.js >= 16 required.**
 
-```js
-const { co, Channel, utils: { alts, timeout } } = require('core-async')
+### Migration Example
 
-const numberChan = new Channel()
-
-// Producer: keeps adding numbers forever
-co(function *() {
-  let counter = 0
-  while (true)
-    yield numberChan.put(++counter)
-})
-
-// Consumer: stops after 3 seconds
-co(function *() {
-  const t = timeout(3000)
-  let carryOn = true
-  while (carryOn) {
-    const [v, chan] = yield alts([numberChan, t])
-    carryOn = chan !== t
-    if (carryOn) console.log(`Number: ${v}`)
-  }
-  console.log('Done.')
-})
-```
-
-### Chat Between Two Agents
-
-Two lightweight threads communicating through a shared channel:
-
+**v2:**
 ```js
 const { co, Channel } = require('core-async')
 
-const chat = new Channel()
-
-// Thread 1
 co(function *() {
-  yield chat.put('Hello')
-  const reply1 = yield chat.take()
-  console.log(`T2 says: ${reply1}`)
-  yield chat.put('Going to the beach. Want to come?')
-  const reply2 = yield chat.take()
-  console.log(`T2 says: ${reply2}`)
-  yield chat.put('See you there!')
-})
-
-// Thread 2
-co(function *() {
-  const msg1 = yield chat.take()
-  console.log(`T1 says: ${msg1}`)
-  yield chat.put("Hi! What's up?")
-  const msg2 = yield chat.take()
-  console.log(`T1 says: ${msg2}`)
-  yield chat.put("Sounds great. I'll be there.")
-  const msg3 = yield chat.take()
-  console.log(`T1 says: ${msg3}`)
-  chat.close()
+  yield chan.put('hello')
+  const val = yield chan.take()
 })
 ```
 
-### Monitoring Stock Prices
+**v3:**
+```js
+import { Channel } from 'core-async'
 
-Use channels to separate price-checking from alert logic:
+;(async () => {
+  await chan.put('hello')
+  const val = await chan.take()
+})()
+```
+
+The nested namespace destructuring from v2 still works in CJS:
 
 ```js
-const { co, Channel } = require('core-async')
-
-const delay = t => new Promise(resolve => setTimeout(resolve, t))
-const getStockPrice = ticker => Promise.resolve({ ticker, price: 100 + Math.random() * 10 })
-
-const STOCKS = ['FB', 'AAPL', 'AMZN', 'NFLX', 'GOOGL']
-
-STOCKS.forEach(ticker => {
-  const chan = new Channel()
-
-  // Price checker
-  co(function *() {
-    while (true) {
-      const { price } = yield getStockPrice(ticker)
-      chan.put({ price, date: Date.now() })
-      yield delay(60000) // Check every minute
-    }
-  })
-
-  // Alert logic
-  co(function *() {
-    let history = []
-    while (true) {
-      const snapshot = yield chan.take()
-      history.push(snapshot)
-      if (history.length === 60) {
-        const change = (history[59].price - history[0].price) / history[0].price
-        if (Math.abs(change) >= 0.05)
-          console.log(`${ticker} moved ${(change * 100).toFixed(1)}% in the last hour`)
-        history.splice(0, 1)
-      }
-    }
-  })
-})
+const { Channel, utils: { alts, timeout }, transducer: { map } } = require('core-async')
 ```
 
 ## Testing
@@ -240,7 +405,7 @@ STOCKS.forEach(ticker => {
 npm test
 ```
 
-Runs the Mocha test suite covering channels, transducers, and utility functions.
+Builds ESM + CJS outputs, then runs 85 tests covering channels, transducers, utilities, bug fix regressions, edge cases, and ESM imports.
 
 ## License
 

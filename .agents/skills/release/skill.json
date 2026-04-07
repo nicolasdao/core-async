@@ -1,0 +1,14 @@
+{
+	"name": "release",
+	"version": "1.0.0",
+	"description": "Review session changes, decide semver bump, update CHANGELOG.md, bump package.json version, and create a release commit with git tag.",
+	"keywords": [
+		"release",
+		"changelog",
+		"semver",
+		"version",
+		"bump",
+		"publish",
+		"npm"
+	]
+}

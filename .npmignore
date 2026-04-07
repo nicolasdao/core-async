@@ -1,2 +1,6 @@
 test/
 dummy.js
+src/
+.eslintrc.json
+.claude/
+.agents/

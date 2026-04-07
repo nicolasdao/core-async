@@ -1,21 +1,17 @@
 {
     "env": {
         "browser": true,
-        "commonjs": true,
-        "es6": true
+        "es2022": true,
+        "node": true
     },
     "extends": "eslint:recommended",
     "globals": {
-        "process": false,
         "describe": false,
-        "it": false,
-        "Buffer": false,
-        "__dirname": false,
-        "setImmediate": false
+        "it": false
     },
     "parserOptions": {
         "sourceType": "module",
-        "ecmaVersion": 2018
+        "ecmaVersion": 2022
     },
     "rules": {
         "no-console":0,
