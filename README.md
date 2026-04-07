@@ -438,4 +438,4 @@ npx standard-version --release-as <major|minor|patch>
 
 ## License
 
-BSD-3-Clause. Copyright (c) 2017-2019, Neap Pty Ltd.
+BSD-3-Clause. Copyright (c) 2017-2019 Neap Pty Ltd, 2019-2026 Cloudless Consulting Pty Ltd (https://cloudlesslabs.com).

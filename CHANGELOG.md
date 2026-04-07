@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.1](https://github.com/nicolasdao/core-async/compare/v3.0.0...v3.0.1) (2026-04-07)
+
+### Chores
+
+* **license:** Transfer copyright from Neap Pty Ltd to Cloudless Consulting Pty Ltd across LICENSE, README, source files, and test files
+* **docs:** Add releasing section to README documenting the `/release` skill workflow
+* **tooling:** Add Claude Code skills configuration
+
 ## [3.0.0](https://github.com/nicolasdao/core-async/compare/v2.0.6...v3.0.0) (2026-04-07)
 
 ### ⚠ BREAKING CHANGES
