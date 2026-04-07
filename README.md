@@ -31,6 +31,7 @@ A standalone, zero-dependency CSP (Communicating Sequential Processes) library f
 - [Documentation](#documentation)
 - [Migrating from v2 to v3](#migrating-from-v2-to-v3)
 - [Testing](#testing)
+- [Releasing](#releasing)
 - [License](#license)
 
 ## Why CSP?
@@ -406,6 +407,34 @@ npm test
 ```
 
 Builds ESM + CJS outputs, then runs 85 tests covering channels, transducers, utilities, bug fix regressions, edge cases, and ESM imports.
+
+## Releasing
+
+This project includes a `/release` skill for [Claude Code](https://claude.ai/claude-code) that automates the entire release workflow:
+
+```
+/release
+```
+
+When invoked, the skill:
+
+1. Reviews all changes since the last release
+2. Classifies them (breaking, feature, fix, perf) and determines the correct [semver](https://semver.org/) bump
+3. Updates `CHANGELOG.md` with a structured entry
+4. Bumps the version in `package.json`
+5. Creates a release commit and git tag
+
+After the skill completes, publish with:
+
+```
+git push --follow-tags origin master && npm publish
+```
+
+For a manual release without Claude Code, use [standard-version](https://github.com/conventional-changelog/standard-version):
+
+```
+npx standard-version --release-as <major|minor|patch>
+```
 
 ## License
 
