@@ -4,6 +4,14 @@
 
 A standalone, zero-dependency CSP (Communicating Sequential Processes) library for JavaScript. Coordinate concurrent async workflows through **channels** instead of tangled callbacks, event emitters, or complex promise chains. Works with native `async/await`. Ships as both **ESM** and **CommonJS**.
 
+> **Using an AI assistant?** This project provides LLM-optimized documentation. Instead of copy-pasting docs, give your AI this prompt:
+>
+> ```
+> Fetch https://raw.githubusercontent.com/nicolasdao/core-async/master/llms.txt and use it to learn the core-async API. Follow the links in that document if you need more detail on a specific topic.
+> ```
+>
+> This loads a concise API overview with links to the [full reference](https://raw.githubusercontent.com/nicolasdao/core-async/master/llms-full.txt) — so the AI only reads what it needs.
+
 ## Table of Contents
 
 - [Why CSP?](#why-csp)
@@ -68,7 +76,7 @@ This gives you:
 
 Run 100 API calls, max 5 at a time.
 
-**Without core-async** (manual tracking):
+**Without core-async** — you manually track in-flight promises, juggle a `Set`, and wire up `Promise.race` to gate new work. It works, but it's 9 lines of fiddly concurrency plumbing that's easy to get wrong:
 
 ```js
 async function throttle(tasks, limit) {
@@ -82,9 +90,11 @@ async function throttle(tasks, limit) {
   }
   return Promise.all(results)
 }
+
+const results = await throttle(tasks, 5)
 ```
 
-**With core-async** (one line):
+**With core-async** — one function call. No manual tracking, no `Set`, no `Promise.race`. Concurrency limiting is a solved problem — you shouldn't have to re-solve it every time:
 
 ```js
 import { throttle } from 'core-async'
@@ -94,62 +104,70 @@ const results = await throttle(tasks, 5)
 
 ### Producer-Consumer Pipeline
 
-A producer generates data; a consumer processes it. The producer must wait when the consumer falls behind.
+A producer generates data faster than the consumer can process it. Without backpressure, the producer floods memory. With it, the producer automatically pauses when the consumer falls behind.
 
-**Without core-async** (manual backpressure):
+**Without core-async** — you wire up your own signaling mechanism with raw promises. The producer and consumer are coupled through shared mutable state (`currentItem`, `resolve`), and the flow is hard to follow. Miss one `await` and you get a race condition:
 
 ```js
 let resolve
 let promise = new Promise(r => resolve = r)
+let currentItem
 
-async function produce() {
+async function produce(items) {
   for (const item of items) {
-    // Block until consumer signals readiness
-    await promise
+    await promise                        // Block until consumer signals readiness
     currentItem = item
     promise = new Promise(r => resolve = r)
   }
+  currentItem = null                     // Signal done
+  resolve()
 }
 
 async function consume() {
   while (true) {
-    resolve() // Signal readiness
+    resolve()                            // Signal readiness
     await new Promise(r => setTimeout(r, 0))
-    process(currentItem)
+    if (currentItem === null) break
+    console.log('Processing:', currentItem)
   }
 }
+
+// Must start both — and hope the shared state stays in sync
+produce(['a', 'b', 'c'])
+consume()
 ```
 
-**With core-async** (clear intent):
+**With core-async** — the channel handles all synchronization. No shared mutable state, no manual signaling. The producer blocks on `put` when the consumer isn't ready, and the consumer blocks on `take` when no data is available — backpressure is automatic:
 
 ```js
 import { Channel } from 'core-async'
 
 const chan = new Channel()
 
-// Producer — blocks automatically when consumer isn't ready
-async function produce() {
+async function produce(items) {
   for (const item of items) {
-    await chan.put(item)
+    await chan.put(item)    // Blocks until consumer takes
   }
-  await chan.put(null) // Signal done
+  await chan.put(null)      // Close the channel
 }
 
-// Consumer — blocks automatically when no data available
 async function consume() {
-  let item = await chan.take()
-  while (item !== null) {
-    process(item)
-    item = await chan.take()
+  let item
+  while ((item = await chan.take()) !== null) {
+    console.log('Processing:', item)
   }
 }
+
+// Start both — the channel keeps them in sync
+produce(['a', 'b', 'c'])
+consume()
 ```
 
 ### Racing Multiple Sources With a Deadline
 
-Wait for data from multiple sources, but give up after 3 seconds.
+Wait for data from multiple sources, but give up after 3 seconds. Whichever responds first wins.
 
-**Without core-async** (fragile state management):
+**Without core-async** — you manage a `done` flag, a `setTimeout`, and duplicate cleanup logic across every listener. Every new source means another copy-pasted callback with the same guard. Forget `clearTimeout` and you leak timers:
 
 ```js
 let done = false
@@ -157,12 +175,13 @@ const timer = setTimeout(() => { done = true; console.log('Timed out') }, 3000)
 
 source1.on('data', d => { if (!done) { done = true; clearTimeout(timer); handle(d) } })
 source2.on('data', d => { if (!done) { done = true; clearTimeout(timer); handle(d) } })
+// Adding source3? Copy-paste the same 1-liner again...
 ```
 
-**With core-async** (declarative):
+**With core-async** — `alts` races any number of channels in a single call. No flags, no cleanup, no duplication. Adding a new source is just adding an element to the array:
 
 ```js
-import { Channel, alts, timeout } from 'core-async'
+import { alts, timeout } from 'core-async'
 
 const [value, winner] = await alts([source1Chan, source2Chan, timeout(3000)])
 
@@ -362,6 +381,8 @@ const results = await throttle(tasks, 10)
 
 - **[API Reference](./docs/api.md)** — Complete reference for all exported functions: Channel (constructor, put, take, sput, stake, close), transducers (filter, map, reduce, compose), and utilities (alts, merge, timeout, delay, subscribe, PubSub, throttle). Includes all constructor overloads, return values, options, and code examples.
 - **[Gotchas](./docs/gotchas.md)** — Non-obvious behavior and pitfalls: putting null closes the channel, sput/stake semantics, sliding vs dropping modes, event loop implications, timeout patterns, and more.
+- **[LLM API Overview](./llms.txt)** — Concise, machine-readable API overview optimized for AI assistants. Start here for progressive discovery.
+- **[LLM Full Reference](./llms-full.txt)** — Complete API reference in a single flat file, optimized for LLM consumption.
 
 ## Migrating from v2 to v3
 

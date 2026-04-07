@@ -1,6 +1,6 @@
 {
   "name": "core-async",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "A standalone, zero-dependency JavaScript CSP (Communicating Sequential Processes) library. Channels, transducers, pub/sub, throttle, alts, and more. Works with async/await.",
   "type": "module",
   "main": "./dist/index.cjs",

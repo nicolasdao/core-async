@@ -1,0 +1,105 @@
+# core-async
+
+> A standalone, zero-dependency CSP (Communicating Sequential Processes) library for JavaScript.
+> Coordinate concurrent async workflows through channels instead of callbacks, event emitters, or promise chains.
+> Works with native async/await. Ships as both ESM and CommonJS.
+
+## Install
+
+```
+npm i core-async
+```
+
+## Quick Start
+
+```js
+import { Channel } from 'core-async'
+
+const chan = new Channel()
+
+// Producer
+;(async () => {
+  await chan.put('hello')   // Blocks until someone takes
+  await chan.put('world')
+  await chan.put(null)      // Close the channel
+})()
+
+// Consumer
+;(async () => {
+  let item
+  while ((item = await chan.take()) !== null) {
+    console.log(item)      // 'hello', then 'world'
+  }
+})()
+```
+
+## API Overview
+
+### Channel
+
+- `new Channel()` — unbuffered channel
+- `new Channel(bufferSize)` — buffered channel (e.g., `new Channel(3)`)
+- `new Channel(transducer)` — channel with a transducer
+- `new Channel(bufferSize, transducer)` — buffered channel with a transducer
+- `new Channel(bufferSize, { mode, onClosing })` — buffered with options
+- `new Channel(bufferSize, transducer, { mode, onClosing })` — all options
+
+Options:
+- `mode`: `'default'` (blocks when full), `'sliding'` (drops oldest), `'dropping'` (drops newest)
+- `onClosing`: callback invoked when close() is called
+
+Methods:
+- `chan.put(value, opts?) → Promise<boolean|null>` — send a value (blocks until taken). Putting `null` closes the channel.
+  - opts: `{ timeout: ms }` — rejects with error (code 408) if not consumed in time
+  - Returns: `true` (delivered), `false` (filtered by transducer), `null` (channel closed or dropped)
+- `chan.take(opts?) → Promise<any|null>` — receive a value (blocks until available)
+  - opts: `{ timeout: ms }` — rejects with error (code 408) if no value in time
+  - Returns: the value, or `null` when channel is closed
+- `chan.sput(value) → boolean|Promise<boolean>` — non-blocking put. Returns `true` if delivered, `false` if no taker waiting. Returns Promise when channel has a transducer.
+- `chan.stake() → any|false` — non-blocking take. Returns the value or `false` if nothing available.
+- `chan.close() → void` — closes the channel. Pending puts resolve with `false`, pending takes resolve with `null`.
+
+State properties:
+- `chan.opened` — `true` until close() is called
+- `chan.closing` — `true` after close() is called
+- `chan.closed` — `true` after close() finishes resolving all pending operations
+
+### Transducers
+
+- `filter(predicate: (value, index) => boolean) → Transducer` — only allows matching values through. `put` returns `false` for rejected values.
+- `map(transform: (value, index) => any) → Transducer` — transforms each value before it enters the channel.
+- `reduce(fn: (acc, value, index) => any, initial) → Transducer` — accumulates values; each take receives the running accumulation.
+- `compose(...transducers) → Transducer` — composes transducers left-to-right. If any rejects, the rest are skipped.
+
+All predicate/transform/reduce functions may return Promises.
+
+### Utilities
+
+- `alts(channels: Channel[]) → Promise<[value, channel]>` — race multiple channels, returns `[value, winnerChannel]`
+- `merge(channels: Channel[]) → Channel` — merge multiple channels into one output channel
+- `timeout(time: number | [min, max]) → Channel` — channel that receives `'timeout'` after ms (or random ms in range)
+- `delay(ms: number) → Promise<void>` — simple async sleep
+- `subscribe(channel, subscribers: { chan, rule }[]) → void` — route values to subscriber channels based on predicate rules
+- `throttle(tasks: (() => Promise)[], limit: number) → Promise<any[]>` — run async tasks with concurrency limit. Failed tasks return `{ error }` instead of throwing.
+- `new PubSub()` — topic-based pub/sub system
+  - `pubSub.pub(topics: string | string[], value) → void`
+  - `pubSub.sub(topics: string | string[], channel: Channel) → void`
+  - `pubSub.unsub(topics: string | string[], channel: Channel) → void`
+  - `pubSub.close() → void` — closes all internal subscription channels
+
+## Key Gotchas
+
+1. **Putting `null` closes the channel.** You cannot use `null` as a data value. Use `undefined` or `{}` instead.
+2. **`sput`/`stake` silently fail** — they return `false`, not throw, when they can't complete.
+3. **`sput` returns a Promise** when the channel has a transducer (because the transducer may be async).
+4. **Sliding drops oldest, dropping drops newest** — `sliding` keeps the most recent value; `dropping` keeps the oldest.
+5. **Always close channels** — open channels with blocked operations keep the event loop alive (important in Lambda/serverless).
+6. **Timeout errors have code 408** — catch them with `err.code === 408`.
+
+## Detailed Documentation
+
+For complete examples, edge cases, and in-depth explanations, see the full reference:
+
+- Full API reference: https://raw.githubusercontent.com/nicolasdao/core-async/master/llms-full.txt
+- Gotchas and pitfalls: https://raw.githubusercontent.com/nicolasdao/core-async/master/docs/gotchas.md
+- API reference (human-readable): https://raw.githubusercontent.com/nicolasdao/core-async/master/docs/api.md

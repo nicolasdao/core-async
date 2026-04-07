@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.0](https://github.com/nicolasdao/core-async/compare/v3.0.1...v3.1.0) (2026-04-07)
+
+### Features
+
+* **docs:** Add LLM-optimized documentation (`llms.txt`, `llms-full.txt`) for progressive API discovery by AI assistants via a single fetchable URL
+
+### Chores
+
+* **docs:** Improve before/after examples in README with clear value propositions, complete executable code, and explicit contrast between vanilla JS and core-async
+* **docs:** Add LLM documentation callout to README top with copy-pasteable prompt for AI assistants
+* **tooling:** Update happyskills to 1.24.2 and disable init-doc, init-mission skills
+
 ## [3.0.1](https://github.com/nicolasdao/core-async/compare/v3.0.0...v3.0.1) (2026-04-07)
 
 ### Chores
